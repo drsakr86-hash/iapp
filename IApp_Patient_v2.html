@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0A0F1E">
+  <title>I App - بوابة المريض</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+    html,body{height:100%;background:#0A0F1E;overflow:hidden;font-family:'Segoe UI',Tahoma,Arial,sans-serif;}
+    #root{height:100%;}
+    ::-webkit-scrollbar{display:none;}
+    @keyframes slideUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes toastIn{from{opacity:0;transform:translate(-50%,12px)}to{opacity:1;transform:translate(-50%,0)}}
+    @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes float{0%,100%{transform:translateY(0px)}50%{transform:translateY(-8px)}}
+    @keyframes glow{0%,100%{box-shadow:0 0 20px #00C2FF44,0 0 40px #00C2FF22}50%{box-shadow:0 0 30px #00C2FF88,0 0 60px #00C2FF44}}
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+    @keyframes orb{0%{transform:translate(0,0) scale(1)}33%{transform:translate(20px,-15px) scale(1.05)}66%{transform:translate(-10px,10px) scale(0.95)}100%{transform:translate(0,0) scale(1)}}
+  </style>
+</head>
+<body><div id="root"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<script type="text/babel" data-presets="react">
+const {useState,useEffect}=React;
+const C={bg:"#0A0F1E",surface:"#111827",card:"#141E30",border:"#1E2D45",
+  accent:"#00C2FF",teal:"#00E5CC",gold:"#FFB830",purple:"#A78BFA",
+  text:"#E8F4FF",muted:"#6B8CAE",danger:"#FF4D6D",success:"#00E5B0"};
+const SB_URL="https://mofdveiwlaymlabvsypu.supabase.co";
+const SB_KEY="sb_publishable_tVZ1mUOyb3vOjRV1jBpq6g_P2u-xIqF";
+let _sb=null;
+function getSB(){if(!_sb&&window.supabase)_sb=window.supabase.createClient(SB_URL,SB_KEY);return _sb;}
+async function sbGet(k){try{const{data}=await getSB().from("iapp_store").select("value").eq("key",k).maybeSingle();return data?.value??null;}catch{return null;}}
+async function sbSet(k,v){try{await getSB().from("iapp_store").upsert({key:k,value:v},{onConflict:"key"});}catch{}}
+const inp=()=>({width:"100%",background:"#0d1520",border:"1px solid #1E2D45",borderRadius:10,padding:"11px 14px",color:"#E8F4FF",fontSize:13,outline:"none",direction:"rtl",fontFamily:"inherit"});
+
+const CLINICS=[
+  {id:"damnhour",name:"عيادة دمنهور",address:"برج المنتزه بجوار حديقة الجمهورية",phone:"0453333313",icon:"🏥",days:[0,1,3,4,6],dayNames:["الأحد","الاثنين","الأربعاء","الخميس","السبت"],sessions:[{slots:["20:00","20:30","21:00","21:30","22:00"]}]},
+  {id:"rahmania",name:"عيادة الرحمانية",address:"ش أحمد محمود بجوار فرع we",phone:"01111480137",icon:"🏨",days:[6,1,3],dayNames:["السبت","الاثنين","الأربعاء"],sessions:[{slots:["16:00","16:30","17:00","17:30","18:00"]}]},
+  {id:"center",name:"مركز دمنهور للعيون",address:"دمنهور",phone:"0453333313",icon:"👁",schedule:{0:{slots:["13:00","13:30","14:00","14:30","15:00","15:30"]},1:{slots:["13:00","13:30","14:00","14:30","15:00","15:30"]},2:{slots:["15:00","15:30","16:00","16:30","17:00","17:30","18:00","18:30","19:00","19:30","20:00","20:30"]},4:{slots:["09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","13:30","14:00","14:30"]}},dayNames:["الأحد","الاثنين","الثلاثاء","الخميس"]}
+];
+
+function getAvailableDates(c){
+  const dates=[];const now=new Date();
+  for(let i=1;i<=30;i++){const d=new Date(now);d.setDate(now.getDate()+i);const dow=d.getDay();
+    const ok=c.days?c.days.includes(dow):c.schedule&&c.schedule[dow]!==undefined;
+    if(ok)dates.push({date:d.toISOString().slice(0,10),dayName:["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"][dow],dayOfWeek:dow});}
+  return dates;
+}
+function getSlots(c,dow){if(c.sessions)return c.sessions[0].slots;if(c.schedule)return c.schedule[dow]?.slots||[];return[];}
+
+function Toast({msg,color,onDone}){
+  useEffect(()=>{const t=setTimeout(onDone,2400);return()=>clearTimeout(t);},[]);
+  return <div style={{position:"fixed",bottom:80,left:"50%",transform:"translateX(-50%)",background:color||C.success,color:C.bg,borderRadius:14,padding:"10px 22px",fontWeight:700,fontSize:13,zIndex:999,animation:"toastIn 0.3s ease",whiteSpace:"nowrap",boxShadow:"0 4px 20px "+(color||C.success)+"66"}}>✓ {msg}</div>;
+}
+
+// ── Login ─────────────────────────────────────────────────────
+function Login({onLogin}){
+  const [mode,setMode]=useState(null);
+  const [code,setCode]=useState("");
+  const [name,setName]=useState("");
+  const [error,setError]=useState("");
+  const [loading,setLoading]=useState(false);
+
+  const handleLogin=async()=>{
+    if(!code.trim()||!name.trim()){setError("يرجى إدخال رقم الملف والاسم");return;}
+    setLoading(true);setError("");
+    const patients=await sbGet("iapp_patients");setLoading(false);
+    if(!patients){setError("خطأ في الاتصال — حاول مرة أخرى");return;}
+    const p=patients.find(p=>p.patientCode?.toLowerCase()===code.trim().toLowerCase()&&p.name?.trim()===name.trim());
+    if(p)onLogin(p);else setError("رقم الملف أو الاسم غير صحيح");
+  };
+
+  // ── Welcome Screen ────────────────────────────────────────
+  if(!mode) return (
+    <div style={{minHeight:"100vh",background:"#060d1a",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"space-between",padding:"0",overflow:"hidden",position:"relative"}}>
+
+      {/* Animated background orbs */}
+      <div style={{position:"absolute",inset:0,overflow:"hidden",pointerEvents:"none"}}>
+        <div style={{position:"absolute",top:"8%",left:"15%",width:220,height:220,borderRadius:"50%",background:"radial-gradient(circle,#00C2FF18 0%,transparent 70%)",animation:"orb 8s ease-in-out infinite"}}/>
+        <div style={{position:"absolute",top:"30%",right:"5%",width:160,height:160,borderRadius:"50%",background:"radial-gradient(circle,#00E5CC14 0%,transparent 70%)",animation:"orb 11s ease-in-out infinite reverse"}}/>
+        <div style={{position:"absolute",bottom:"25%",left:"10%",width:130,height:130,borderRadius:"50%",background:"radial-gradient(circle,#A78BFA12 0%,transparent 70%)",animation:"orb 9s ease-in-out infinite 2s"}}/>
+        <div style={{position:"absolute",bottom:"10%",right:"20%",width:100,height:100,borderRadius:"50%",background:"radial-gradient(circle,#FFB83010 0%,transparent 70%)",animation:"orb 13s ease-in-out infinite 1s"}}/>
+        {/* Grid lines */}
+        <svg style={{position:"absolute",inset:0,width:"100%",height:"100%",opacity:0.04}} xmlns="http://www.w3.org/2000/svg">
+          <defs><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="#00C2FF" strokeWidth="0.5"/></pattern></defs>
+          <rect width="100%" height="100%" fill="url(#grid)"/>
+        </svg>
+      </div>
+
+      {/* Top section — Logo */}
+      <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"40px 20px 20px",animation:"fadeIn 0.8s ease",position:"relative",zIndex:1}}>
+        {/* App Icon */}
+        <div style={{position:"relative",marginBottom:24,animation:"float 4s ease-in-out infinite"}}>
+          <div style={{width:100,height:100,borderRadius:28,background:"linear-gradient(135deg,#00C2FF,#00E5CC)",display:"flex",alignItems:"center",justifyContent:"center",animation:"glow 3s ease-in-out infinite",position:"relative",overflow:"hidden"}}>
+            {/* Eye SVG */}
+            <svg width="56" height="56" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <ellipse cx="28" cy="28" rx="22" ry="13" fill="white" opacity="0.95"/>
+              <circle cx="28" cy="28" r="9" fill="#1a6b8a"/>
+              <circle cx="28" cy="28" r="6" fill="#0a2a40"/>
+              <circle cx="31" cy="25" r="2.5" fill="white" opacity="0.9"/>
+              <circle cx="25" cy="30" r="1.2" fill="white" opacity="0.5"/>
+              <ellipse cx="28" cy="28" rx="22" ry="13" fill="none" stroke="white" strokeWidth="1.5" opacity="0.3"/>
+            </svg>
+            {/* Shine overlay */}
+            <div style={{position:"absolute",top:0,left:0,right:0,height:"45%",background:"linear-gradient(180deg,rgba(255,255,255,0.2),transparent)",borderRadius:"28px 28px 0 0"}}/>
+          </div>
+          {/* Glow ring */}
+          <div style={{position:"absolute",inset:-8,borderRadius:36,border:"1px solid #00C2FF33",animation:"glow 3s ease-in-out infinite"}}/>
+        </div>
+
+        <div style={{color:"#00C2FF",fontWeight:900,fontSize:34,letterSpacing:2,marginBottom:6,textShadow:"0 0 20px #00C2FF88"}}>I App</div>
+        <div style={{color:"#E8F4FF",fontSize:15,fontWeight:600,marginBottom:4,opacity:0.9}}>عيادة د. عبدالستار صقر</div>
+        <div style={{color:"#6B8CAE",fontSize:12,marginBottom:8}}>استشاري طب وجراحة العيون والليزر</div>
+
+        {/* Stars rating decoration */}
+        <div style={{display:"flex",gap:4,marginBottom:4}}>
+          {[1,2,3,4,5].map(i=><span key={i} style={{color:"#FFB830",fontSize:13,textShadow:"0 0 6px #FFB83088"}}>★</span>)}
+        </div>
+        <div style={{color:"#6B8CAE",fontSize:10,marginBottom:20}}>خدمة طبية متكاملة</div>
+
+        {/* Welcome message */}
+        <div style={{background:"linear-gradient(135deg,#0d1e2e,#0a1828)",border:"1px solid #00C2FF22",borderRadius:16,padding:"14px 18px",textAlign:"center",maxWidth:320}}>
+          <div style={{color:"#00C2FF",fontSize:13,fontWeight:700,marginBottom:6}}>🌟 أهلاً وسهلاً بكم</div>
+          <div style={{color:"#a0b8cc",fontSize:12,lineHeight:1.7}}>
+            نسعد بخدمتكم وتقديم أفضل رعاية طبية متخصصة لصحة عيونكم.<br/>
+            فريقنا في خدمتكم على مدار اليوم.
+          </div>
+        </div>
+      </div>
+
+      {/* Cards section */}
+      <div style={{width:"100%",maxWidth:440,padding:"0 20px 20px",position:"relative",zIndex:1,animation:"slideUp 0.6s ease 0.2s both"}}>
+        {/* Registered patient */}
+        <div onClick={()=>setMode("existing")}
+          style={{background:"linear-gradient(135deg,#141E30,#1a2840)",border:"1px solid #00C2FF44",borderRadius:20,padding:"20px 18px",marginBottom:14,cursor:"pointer",display:"flex",alignItems:"center",gap:16,position:"relative",overflow:"hidden",transition:"all 0.2s"}}>
+          <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:"linear-gradient(90deg,transparent,#00C2FF66,transparent)"}}/>
+          <div style={{width:54,height:54,borderRadius:16,background:"linear-gradient(135deg,#00C2FF33,#00E5CC22)",border:"1px solid #00C2FF44",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+              <circle cx="14" cy="10" r="5" fill="#00C2FF" opacity="0.9"/>
+              <path d="M4 24c0-5.5 4.5-10 10-10s10 4.5 10 10" stroke="#00C2FF" strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.7"/>
+              <rect x="17" y="14" width="8" height="6" rx="2" fill="#00E5CC" opacity="0.7"/>
+              <line x1="19" y1="16" x2="23" y2="16" stroke="white" strokeWidth="1" opacity="0.8"/>
+              <line x1="19" y1="18" x2="23" y2="18" stroke="white" strokeWidth="1" opacity="0.8"/>
+            </svg>
+          </div>
+          <div style={{flex:1}}>
+            <div style={{color:"#E8F4FF",fontWeight:800,fontSize:16,marginBottom:3}}>مريض مسجل</div>
+            <div style={{color:"#6B8CAE",fontSize:12}}>عندي رقم ملف من العيادة</div>
+          </div>
+          <div style={{width:32,height:32,borderRadius:10,background:"#00C2FF22",border:"1px solid #00C2FF33",display:"flex",alignItems:"center",justifyContent:"center",color:"#00C2FF",fontSize:16}}>←</div>
+        </div>
+
+        {/* New patient */}
+        <div onClick={()=>onLogin({id:null,name:"زائر",patientCode:null,isGuest:true})}
+          style={{background:"linear-gradient(135deg,#0f1e18,#152418)",border:"1px solid #00E5CC44",borderRadius:20,padding:"20px 18px",marginBottom:20,cursor:"pointer",display:"flex",alignItems:"center",gap:16,position:"relative",overflow:"hidden",transition:"all 0.2s"}}>
+          <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:"linear-gradient(90deg,transparent,#00E5CC66,transparent)"}}/>
+          <div style={{width:54,height:54,borderRadius:16,background:"linear-gradient(135deg,#00E5CC33,#00C2FF22)",border:"1px solid #00E5CC44",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+              <rect x="4" y="4" width="20" height="22" rx="3" stroke="#00E5CC" strokeWidth="1.8" fill="none" opacity="0.7"/>
+              <line x1="14" y1="10" x2="14" y2="18" stroke="#00E5CC" strokeWidth="2" strokeLinecap="round"/>
+              <line x1="10" y1="14" x2="18" y2="14" stroke="#00E5CC" strokeWidth="2" strokeLinecap="round"/>
+              <circle cx="21" cy="7" r="4" fill="#00E5CC"/>
+              <line x1="21" y1="5" x2="21" y2="9" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+              <line x1="19" y1="7" x2="23" y2="7" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+          </div>
+          <div style={{flex:1}}>
+            <div style={{color:"#E8F4FF",fontWeight:800,fontSize:16,marginBottom:3}}>مريض جديد</div>
+            <div style={{color:"#6B8CAE",fontSize:12}}>أول زيارة — احجز موعد الآن</div>
+          </div>
+          <div style={{width:32,height:32,borderRadius:10,background:"#00E5CC22",border:"1px solid #00E5CC33",display:"flex",alignItems:"center",justifyContent:"center",color:"#00E5CC",fontSize:16}}>←</div>
+        </div>
+
+        {/* WhatsApp quick contact */}
+        <a href="https://wa.me/20453333313" target="_blank"
+          style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,background:"#25D36618",border:"1px solid #25D36633",borderRadius:16,padding:"13px",textDecoration:"none",marginBottom:16}}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="#25D366">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+          </svg>
+          <span style={{color:"#25D366",fontWeight:700,fontSize:13}}>تواصل معنا عبر واتساب</span>
+        </a>
+
+        {/* Footer */}
+        <div style={{textAlign:"center"}}>
+          <div style={{color:"#2a3a50",fontSize:10}}>I App © 2025 · عيادة د. عبدالستار صقر</div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // ── Login form ────────────────────────────────────────────
+  return(
+    <div style={{minHeight:"100vh",background:"#060d1a",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:20,position:"relative",overflow:"hidden"}}>
+      {/* Background orbs */}
+      <div style={{position:"absolute",top:"10%",right:"10%",width:180,height:180,borderRadius:"50%",background:"radial-gradient(circle,#00C2FF14,transparent 70%)",animation:"orb 8s ease-in-out infinite",pointerEvents:"none"}}/>
+      <div style={{position:"absolute",bottom:"15%",left:"5%",width:140,height:140,borderRadius:"50%",background:"radial-gradient(circle,#00E5CC10,transparent 70%)",animation:"orb 11s ease-in-out infinite reverse",pointerEvents:"none"}}/>
+
+      <div style={{width:"100%",maxWidth:400,position:"relative",zIndex:1,animation:"slideUp 0.4s ease"}}>
+        {/* Back + Logo */}
+        <div onClick={()=>setMode(null)} style={{display:"flex",alignItems:"center",gap:8,marginBottom:28,cursor:"pointer",color:"#6B8CAE",fontSize:13}}>
+          <div style={{width:32,height:32,borderRadius:10,background:"#141E30",border:"1px solid #1E2D45",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>→</div>
+          رجوع
+        </div>
+
+        <div style={{textAlign:"center",marginBottom:28}}>
+          <div style={{width:70,height:70,borderRadius:20,background:"linear-gradient(135deg,#00C2FF,#00E5CC)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px",animation:"glow 3s ease-in-out infinite"}}>
+            <svg width="40" height="40" viewBox="0 0 56 56" fill="none">
+              <ellipse cx="28" cy="28" rx="22" ry="13" fill="white" opacity="0.95"/>
+              <circle cx="28" cy="28" r="9" fill="#1a6b8a"/>
+              <circle cx="28" cy="28" r="6" fill="#0a2a40"/>
+              <circle cx="31" cy="25" r="2.5" fill="white" opacity="0.9"/>
+            </svg>
+          </div>
+          <div style={{color:"#00C2FF",fontWeight:800,fontSize:20,marginBottom:4}}>تسجيل الدخول</div>
+          <div style={{color:"#6B8CAE",fontSize:12}}>أدخل بياناتك للوصول لملفك الطبي</div>
+        </div>
+
+        <div style={{background:"linear-gradient(135deg,#141E30,#1a2840)",borderRadius:22,padding:"24px 20px",border:"1px solid #1E2D45",position:"relative",overflow:"hidden"}}>
+          <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:"linear-gradient(90deg,transparent,#00C2FF44,transparent)"}}/>
+          <div style={{marginBottom:14}}>
+            <label style={{color:"#6B8CAE",fontSize:12,display:"block",marginBottom:6}}>🔖 رقم الملف</label>
+            <input style={{...inp(),background:"#0a1220",border:"1px solid #1E2D45",borderRadius:12,padding:"13px 16px",fontSize:14}} value={code} onChange={e=>setCode(e.target.value)} placeholder="مثال: P-0001" onKeyDown={e=>e.key==="Enter"&&handleLogin()}/>
+          </div>
+          <div style={{marginBottom:18}}>
+            <label style={{color:"#6B8CAE",fontSize:12,display:"block",marginBottom:6}}>👤 الاسم الكامل</label>
+            <input style={{...inp(),background:"#0a1220",border:"1px solid #1E2D45",borderRadius:12,padding:"13px 16px",fontSize:14}} value={name} onChange={e=>setName(e.target.value)} placeholder="اكتب اسمك كاملاً كما في الملف" onKeyDown={e=>e.key==="Enter"&&handleLogin()}/>
+          </div>
+          {error&&<div style={{color:"#FF4D6D",fontSize:12,textAlign:"center",marginBottom:14,background:"#FF4D6D11",padding:"10px",borderRadius:10,border:"1px solid #FF4D6D33"}}>{error}</div>}
+          <button onClick={handleLogin} disabled={loading}
+            style={{width:"100%",background:loading?"#1a2840":"linear-gradient(135deg,#00C2FF,#00E5CC)",border:"none",borderRadius:14,padding:"14px",color:"#0A0F1E",fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"inherit",opacity:loading?0.7:1,transition:"all 0.2s",boxShadow:loading?"none":"0 4px 20px #00C2FF44"}}>
+            {loading?"⏳ جاري التحقق...":"دخول ←"}
+          </button>
+        </div>
+
+        <div style={{color:"#2a3a50",fontSize:11,textAlign:"center",marginTop:16}}>رقم الملف موجود على روشتتك الطبية أو بطاقة العيادة</div>
+      </div>
+    </div>
+  );
+}
+
+// ── Booking Form ──────────────────────────────────────────────
+function BookingForm({patient,bookForm,setBookForm,booking,onBook}){
+  const [step,setStep]=useState(patient.isGuest?1:2);
+  const [selClinic,setSelClinic]=useState(null);
+  const [availDates,setAvailDates]=useState([]);
+  const [selDate,setSelDate]=useState(null);
+  const s=k=>e=>setBookForm(v=>({...v,[k]:e.target.value}));
+  const selClinicFn=c=>{setSelClinic(c);setBookForm(v=>({...v,clinic:c.name,date:"",time:""}));setAvailDates(getAvailableDates(c));setSelDate(null);setStep(3);};
+  const selDateFn=d=>{setSelDate(d);setBookForm(v=>({...v,date:d.date,time:""}));setStep(4);};
+  const selTimeFn=t=>{setBookForm(v=>({...v,time:t}));setStep(5);};
+
+  const steps=patient.isGuest?["بياناتك","العيادة","التاريخ","الوقت","تأكيد"]:["العيادة","التاريخ","الوقت","تأكيد"];
+  const currentStep=patient.isGuest?step-1:step-2;
+
+  return(
+    <div>
+      {/* Progress bar */}
+      <div style={{display:"flex",gap:4,marginBottom:18,alignItems:"center"}}>
+        {steps.map((l,i)=>(
+          <React.Fragment key={i}>
+            <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
+              <div style={{width:24,height:24,borderRadius:"50%",background:i<currentStep?C.success:i===currentStep?C.accent:C.border,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:i<=currentStep?C.bg:C.muted,transition:"all 0.3s"}}>
+                {i<currentStep?"✓":i+1}
+              </div>
+              <div style={{color:i===currentStep?C.accent:C.muted,fontSize:8,whiteSpace:"nowrap"}}>{l}</div>
+            </div>
+            {i<steps.length-1&&<div style={{flex:1,height:2,background:i<currentStep?C.success:C.border,borderRadius:1,marginBottom:14,transition:"all 0.3s"}}/>}
+          </React.Fragment>
+        ))}
+      </div>
+
+      {/* STEP 1: Guest data */}
+      {patient.isGuest&&step===1&&(
+        <div style={{background:C.surface,borderRadius:16,padding:16,border:"1px solid "+C.border,marginBottom:14}}>
+          <div style={{color:C.text,fontWeight:700,fontSize:14,marginBottom:14}}>👤 بياناتك أولاً</div>
+          <div style={{display:"flex",flexDirection:"column",gap:12}}>
+            <div><label style={{color:C.muted,fontSize:11,display:"block",marginBottom:5}}>الاسم الكامل</label>
+              <input style={inp()} value={bookForm.newName||""} onChange={e=>setBookForm(v=>({...v,newName:e.target.value}))} placeholder="اكتب اسمك كاملاً"/></div>
+            <div><label style={{color:C.muted,fontSize:11,display:"block",marginBottom:5}}>رقم الهاتف</label>
+              <input style={inp()} value={bookForm.newPhone||""} onChange={e=>setBookForm(v=>({...v,newPhone:e.target.value}))} placeholder="01xxxxxxxxx" type="tel" inputMode="tel"/></div>
+          </div>
+          <button onClick={()=>{
+            if(!bookForm.newName?.trim()){alert("اكتب اسمك الكامل");return;}
+            if(!bookForm.newPhone?.trim()||bookForm.newPhone.length<10){alert("اكتب رقم هاتف صحيح (10 أرقام على الأقل)");return;}
+            setStep(2);
+          }} style={{width:"100%",marginTop:14,background:`linear-gradient(135deg,${C.accent},${C.teal})`,border:"none",borderRadius:12,padding:13,color:C.bg,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit",boxShadow:"0 4px 16px "+C.accent+"44"}}>
+            التالي ← اختيار العيادة
+          </button>
+        </div>
+      )}
+
+      {/* Guest data summary when past step 1 */}
+      {patient.isGuest&&step>1&&(
+        <div style={{background:C.card,border:"1px solid "+C.success+"44",borderRadius:12,padding:"10px 14px",marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div><div style={{color:C.text,fontSize:12,fontWeight:600}}>👤 {bookForm.newName}</div><div style={{color:C.muted,fontSize:11}}>📞 {bookForm.newPhone}</div></div>
+          <span onClick={()=>setStep(1)} style={{color:C.accent,fontSize:11,cursor:"pointer",background:C.accent+"22",padding:"3px 10px",borderRadius:8}}>تغيير</span>
+        </div>
+      )}
+
+      {/* STEP 2: Clinic */}
+      {step>=2&&(
+        <div style={{marginBottom:14}}>
+          <div style={{color:C.muted,fontSize:12,marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <span style={{color:step===2?C.accent:C.muted,fontWeight:step===2?700:400}}>🏥 اختر مكان الكشف</span>
+            {step>2&&<span onClick={()=>{setStep(2);setSelDate(null);setBookForm(v=>({...v,date:"",time:""}));}} style={{color:C.accent,cursor:"pointer",fontSize:11,background:C.accent+"22",padding:"3px 10px",borderRadius:8}}>تغيير</span>}
+          </div>
+          {step===2?(
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              {CLINICS.map(c=>(
+                <div key={c.id} onClick={()=>selClinicFn(c)} style={{background:C.card,border:"1px solid "+C.border,borderRadius:16,padding:16,cursor:"pointer"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:12}}>
+                    <div style={{width:48,height:48,borderRadius:14,background:C.accent+"22",border:"1px solid "+C.accent+"33",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0}}>{c.icon}</div>
+                    <div style={{flex:1}}>
+                      <div style={{color:C.text,fontWeight:700,fontSize:14}}>{c.name}</div>
+                      <div style={{color:C.muted,fontSize:11,marginTop:2}}>📍 {c.address}</div>
+                      <div style={{color:C.accent,fontSize:11,marginTop:2}}>📅 {c.dayNames?.join(" · ")}</div>
+                      <a href={"tel:"+c.phone} onClick={e=>e.stopPropagation()} style={{color:C.teal,fontSize:11,textDecoration:"none",display:"block",marginTop:2}}>📞 {c.phone}</a>
+                    </div>
+                    <div style={{width:32,height:32,borderRadius:10,background:C.accent+"22",display:"flex",alignItems:"center",justifyContent:"center",color:C.accent,fontSize:18,flexShrink:0}}>←</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ):(
+            <div style={{background:C.card,border:"1px solid "+C.success+"44",borderRadius:14,padding:"12px 16px",display:"flex",alignItems:"center",gap:12}}>
+              <span style={{fontSize:22}}>{selClinic?.icon}</span>
+              <div><div style={{color:C.text,fontWeight:700,fontSize:13}}>{selClinic?.name}</div><div style={{color:C.muted,fontSize:11}}>📍 {selClinic?.address}</div></div>
+              <span style={{marginRight:"auto",color:C.success,fontSize:16}}>✓</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* STEP 3: Date */}
+      {step>=3&&(
+        <div style={{marginBottom:14}}>
+          <div style={{color:C.muted,fontSize:12,marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <span style={{color:step===3?C.accent:C.muted,fontWeight:step===3?700:400}}>📅 اختر التاريخ</span>
+            {step>3&&<span onClick={()=>{setStep(3);setBookForm(v=>({...v,time:""}));}} style={{color:C.accent,cursor:"pointer",fontSize:11,background:C.accent+"22",padding:"3px 10px",borderRadius:8}}>تغيير</span>}
+          </div>
+          {step===3?(
+            <div style={{display:"flex",gap:8,overflowX:"auto",paddingBottom:8}}>
+              {availDates.slice(0,14).map(d=>(
+                <div key={d.date} onClick={()=>selDateFn(d)} style={{flexShrink:0,background:C.card,border:"1px solid "+C.border,borderRadius:14,padding:"12px 14px",cursor:"pointer",textAlign:"center",minWidth:76}}>
+                  <div style={{color:C.accent,fontSize:10,marginBottom:4}}>{d.dayName}</div>
+                  <div style={{color:C.text,fontWeight:700,fontSize:13}}>{d.date.slice(5)}</div>
+                </div>
+              ))}
+            </div>
+          ):(
+            <div style={{background:C.card,border:"1px solid "+C.success+"44",borderRadius:14,padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+              <div style={{color:C.text,fontWeight:700,fontSize:13}}>📅 {selDate?.dayName} · {bookForm.date}</div>
+              <span style={{color:C.success,fontSize:16}}>✓</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* STEP 4: Time */}
+      {step>=4&&(
+        <div style={{marginBottom:14}}>
+          <div style={{color:C.muted,fontSize:12,marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <span style={{color:step===4?C.accent:C.muted,fontWeight:step===4?700:400}}>⏰ اختر الوقت</span>
+            {step>4&&<span onClick={()=>setStep(4)} style={{color:C.accent,cursor:"pointer",fontSize:11,background:C.accent+"22",padding:"3px 10px",borderRadius:8}}>تغيير</span>}
+          </div>
+          {step===4?(
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+              {getSlots(selClinic,selDate?.dayOfWeek).map(t=>(
+                <div key={t} onClick={()=>selTimeFn(t)} style={{background:C.card,border:"1px solid "+C.border,borderRadius:12,padding:"12px 8px",textAlign:"center",cursor:"pointer",color:C.text,fontWeight:700,fontSize:14}}>{t}</div>
+              ))}
+            </div>
+          ):(
+            <div style={{background:C.card,border:"1px solid "+C.success+"44",borderRadius:14,padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+              <div style={{color:C.text,fontWeight:700,fontSize:13}}>⏰ {bookForm.time}</div>
+              <span style={{color:C.success,fontSize:16}}>✓</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* STEP 5: Type + confirm */}
+      {step>=5&&(
+        <div style={{background:C.surface,borderRadius:16,padding:16,border:"1px solid "+C.border,marginBottom:14}}>
+          <div style={{marginBottom:12}}>
+            <label style={{color:C.muted,fontSize:11,display:"block",marginBottom:6}}>🔬 نوع الكشف</label>
+            <select style={inp()} value={bookForm.type} onChange={s("type")}>
+              {["فحص روتيني","متابعة","استشارة","قياس نظر","فحص شبكية"].map(t=><option key={t}>{t}</option>)}
+            </select>
+          </div>
+          <div style={{marginBottom:14}}>
+            <label style={{color:C.muted,fontSize:11,display:"block",marginBottom:6}}>📝 ملاحظات (اختياري)</label>
+            <textarea style={{...inp(),minHeight:55,resize:"none"}} value={bookForm.notes||""} onChange={s("notes")} placeholder="أي أعراض أو ملاحظات للطبيب..."/>
+          </div>
+          <div style={{background:C.bg,borderRadius:12,padding:12,marginBottom:14,border:"1px solid "+C.border}}>
+            <div style={{color:C.muted,fontSize:11,fontWeight:700,marginBottom:8}}>📋 ملخص الحجز</div>
+            {[["🏥",bookForm.clinic],["📅",bookForm.date],["⏰",bookForm.time],["🔬",bookForm.type],
+              ...(patient.isGuest?[["👤",bookForm.newName],["📞",bookForm.newPhone]]:[])
+            ].filter(([,v])=>v).map(([icon,val])=>(
+              <div key={icon} style={{display:"flex",gap:10,marginBottom:5,alignItems:"center"}}>
+                <span style={{fontSize:14}}>{icon}</span><span style={{color:C.text,fontSize:12}}>{val}</span>
+              </div>
+            ))}
+          </div>
+          <button onClick={onBook} disabled={booking}
+            style={{width:"100%",background:booking?"#1a2840":`linear-gradient(135deg,${C.accent},${C.teal})`,border:"none",borderRadius:14,padding:14,color:C.bg,fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"inherit",opacity:booking?0.7:1,boxShadow:booking?"none":"0 4px 20px "+C.accent+"44"}}>
+            {booking?"⏳ جاري الإرسال...":"📅 تأكيد الحجز"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Rating Component ──────────────────────────────────────────
+function RatingPrompt({visit,patient,onDone}){
+  const [rating,setRating]=useState(0);
+  const [comment,setComment]=useState("");
+  const [sent,setSent]=useState(false);
+
+  const submit=async()=>{
+    const ratings=await sbGet("iapp_ratings")||[];
+    ratings.push({id:Date.now(),patientId:patient.id,patient:patient.name,visitId:visit.id,rating,comment,date:new Date().toISOString().slice(0,10)});
+    await sbSet("iapp_ratings",ratings);
+    setSent(true);setTimeout(onDone,1800);
+  };
+
+  if(sent)return(
+    <div style={{textAlign:"center",padding:"30px 20px"}}>
+      <div style={{fontSize:48,marginBottom:12}}>🌟</div>
+      <div style={{color:C.success,fontWeight:800,fontSize:18}}>شكراً على تقييمك!</div>
+    </div>
+  );
+
+  return(
+    <div>
+      <div style={{textAlign:"center",marginBottom:20}}>
+        <div style={{color:C.text,fontWeight:700,fontSize:15,marginBottom:6}}>كيف كانت تجربتك؟</div>
+        <div style={{color:C.muted,fontSize:12}}>زيارة {visit.date}</div>
+      </div>
+      <div style={{display:"flex",justifyContent:"center",gap:12,marginBottom:20}}>
+        {[1,2,3,4,5].map(n=>(
+          <div key={n} onClick={()=>setRating(n)} style={{fontSize:36,cursor:"pointer",opacity:n<=rating?1:0.3,transition:"all 0.15s",transform:n<=rating?"scale(1.1)":"scale(1)"}}>⭐</div>
+        ))}
+      </div>
+      <textarea style={{...inp(),minHeight:70,resize:"none",marginBottom:14}} value={comment} onChange={e=>setComment(e.target.value)} placeholder="أي ملاحظات أو اقتراحات؟ (اختياري)"/>
+      <div style={{display:"flex",gap:10}}>
+        <button onClick={onDone} style={{flex:1,background:"transparent",border:"1px solid "+C.border,borderRadius:10,padding:10,color:C.muted,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>لاحقاً</button>
+        <button onClick={submit} disabled={!rating} style={{flex:2,background:rating?`linear-gradient(135deg,${C.gold},${C.accent})`:"transparent",border:"1px solid "+(rating?C.gold:C.border),borderRadius:10,padding:10,color:rating?C.bg:C.muted,fontWeight:700,fontSize:13,cursor:rating?"pointer":"default",fontFamily:"inherit"}}>إرسال التقييم ✓</button>
+      </div>
+    </div>
+  );
+}
+
+function Modal({title,onClose,children}){
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:400,display:"flex",alignItems:"flex-end"}} onClick={onClose}>
+      <div onClick={e=>e.stopPropagation()} style={{background:C.surface,borderRadius:"20px 20px 0 0",padding:"20px 16px 40px",width:"100%",maxHeight:"90vh",overflowY:"auto",border:"1px solid "+C.border}}>
+        <div style={{display:"flex",justifyContent:"space-between",marginBottom:16}}>
+          <span style={{color:C.text,fontWeight:700,fontSize:15}}>{title}</span>
+          <span onClick={onClose} style={{color:C.muted,fontSize:28,cursor:"pointer",lineHeight:1}}>×</span>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ── Patient App ───────────────────────────────────────────────
+function PatientApp({patient,onLogout}){
+  const [tab,setTab]=useState(patient.isGuest?"book":"home");
+  const [appointments,setAppointments]=useState([]);
+  const [prescriptions,setPrescriptions]=useState([]);
+  const [exams,setExams]=useState([]);
+  const [visits,setVisits]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [modal,setModal]=useState(null);
+  const [toast,setToast]=useState(null);
+  const [bookForm,setBookForm]=useState({clinic:"",date:"",time:"",type:"فحص روتيني",notes:"",isNew:patient.isGuest,newName:"",newPhone:""});
+  const [booking,setBooking]=useState(false);
+  const [bookDone,setBookDone]=useState(false);
+  const [ratingTarget,setRatingTarget]=useState(null);
+  const today=new Date().toISOString().slice(0,10);
+
+  useEffect(()=>{
+    (async()=>{
+      const [a,rx,ex,v]=await Promise.all([sbGet("iapp_appointments"),sbGet("iapp_prescriptions"),sbGet("iapp_exams"),sbGet("iapp_visits")]);
+      if(a)setAppointments(a.filter(x=>x.patientId===patient.id||x.patient===patient.name));
+      if(rx)setPrescriptions(rx.filter(x=>x.patientId===patient.id));
+      if(ex)setExams(ex.filter(x=>x.patientId===patient.id));
+      if(v){
+        const pv=v.filter(x=>x.patientId===patient.id);
+        setVisits(pv);
+        // Check for unrated recent visits
+        const unrated=pv.find(x=>{
+          const d=new Date(x.date);const diff=(Date.now()-d.getTime())/(1000*3600*24);
+          return diff<=3&&!x.rated;
+        });
+        if(unrated&&!patient.isGuest)setTimeout(()=>setRatingTarget(unrated),1500);
+      }
+      setLoading(false);
+    })();
+    // Auto-refresh every 20s to catch confirmation updates
+    const iv=setInterval(async()=>{
+      const a=await sbGet("iapp_appointments");
+      if(a)setAppointments(a.filter(x=>x.patientId===patient.id||x.patient===patient.name));
+    },20000);
+    return()=>clearInterval(iv);
+  },[]);
+
+  const upcomingApts=appointments.filter(a=>a.date>=today).sort((a,b)=>a.date.localeCompare(b.date));
+  const pastApts=appointments.filter(a=>a.date<today).sort((a,b)=>b.date.localeCompare(a.date));
+
+  const doBook=async()=>{
+    if(!bookForm.clinic){alert("اختر المكان");return;}
+    if(!bookForm.date){alert("اختر التاريخ");return;}
+    if(!bookForm.time){alert("اختر الوقت");return;}
+    if(patient.isGuest&&!bookForm.newName?.trim()){alert("اكتب اسمك");return;}
+    if(patient.isGuest&&!bookForm.newPhone?.trim()){alert("اكتب رقم هاتفك");return;}
+    setBooking(true);
+    const allApts=await sbGet("iapp_appointments")||[];
+    const newApt={id:Date.now(),patientId:patient.isGuest?null:patient.id,patient:patient.isGuest?bookForm.newName:patient.name,phone:patient.isGuest?bookForm.newPhone:(patient.phone||""),date:bookForm.date,time:bookForm.time,type:bookForm.type,notes:bookForm.notes||"",doctor:"د. عبدالستار",room:"1",clinic:bookForm.clinic,confirmed:false,fromPatient:true};
+    await sbSet("iapp_appointments",[...allApts,newApt]);
+    setBooking(false);setBookDone(true);
+    if(!patient.isGuest)setAppointments(prev=>[...prev,newApt]);
+  };
+
+  const markVisitRated=async(visitId)=>{
+    const v=await sbGet("iapp_visits")||[];
+    await sbSet("iapp_visits",v.map(x=>x.id===visitId?{...x,rated:true}:x));
+    setRatingTarget(null);
+  };
+
+  const TABS=patient.isGuest?[{id:"book",label:"احجز",icon:"➕"}]:[
+    {id:"home",label:"الرئيسية",icon:"🏠"},
+    {id:"book",label:"احجز",icon:"➕"},
+    {id:"apts",label:"مواعيدي",icon:"📅"},
+    {id:"rx",label:"روشتاتي",icon:"💊"},
+    {id:"exams",label:"فحوصاتي",icon:"🔬"},
+  ];
+
+  const nextApt=upcomingApts[0];
+  // Check if next appointment is within 24h
+  const isAptSoon=nextApt&&((new Date(nextApt.date)-new Date())/(1000*3600))<24;
+
+  return(
+    <div style={{height:"100%",background:C.bg,direction:"rtl",display:"flex",flexDirection:"column"}}>
+      {/* Header */}
+      <div style={{background:`linear-gradient(135deg,${C.surface},#0D1929)`,borderBottom:"1px solid "+C.border,padding:"0 16px",display:"flex",alignItems:"center",justifyContent:"space-between",height:60,flexShrink:0}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <div style={{width:38,height:38,borderRadius:"50%",background:`linear-gradient(135deg,${C.accent},${C.teal})`,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,color:C.bg,fontSize:15}}>
+            {patient.isGuest?"🆕":patient.name?.charAt(0)}
+          </div>
+          <div>
+            <div style={{color:C.text,fontWeight:700,fontSize:13}}>{patient.isGuest?"مريض جديد":patient.name}</div>
+            <div style={{color:C.muted,fontSize:10}}>{patient.isGuest?"احجز موعدك الأول":patient.patientCode}</div>
+          </div>
+        </div>
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          {isAptSoon&&<span style={{background:C.gold+"22",color:C.gold,borderRadius:8,padding:"3px 8px",fontSize:10,fontWeight:700,animation:"pulse 2s infinite"}}>⏰ موعد قريب</span>}
+          <button onClick={onLogout} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:8,padding:"6px 12px",color:C.muted,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>خروج</button>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div style={{flex:1,overflowY:"auto",padding:"16px 16px 0"}}>
+        {loading&&<div style={{color:C.muted,textAlign:"center",padding:40,fontSize:13}}>⏳ جاري التحميل...</div>}
+
+        {/* HOME */}
+        {!loading&&tab==="home"&&<div style={{animation:"slideUp 0.25s ease"}}>
+          <div style={{color:C.text,fontWeight:800,fontSize:18,marginBottom:2}}>أهلاً {patient.name?.split(" ")[0]} 👋</div>
+          <div style={{color:C.muted,fontSize:12,marginBottom:20}}>عيادة د. عبدالستار صقر</div>
+
+          {/* Next appointment banner */}
+          {nextApt&&(
+            <div style={{background:isAptSoon?`linear-gradient(135deg,${C.gold}22,${C.accent}11)`:`linear-gradient(135deg,${C.accent}22,${C.teal}11)`,border:"1px solid "+(isAptSoon?C.gold:C.accent)+"44",borderRadius:16,padding:16,marginBottom:16,animation:isAptSoon?"pulse 2.5s infinite":"none"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                <div>
+                  <div style={{color:isAptSoon?C.gold:C.accent,fontWeight:700,fontSize:12,marginBottom:6}}>
+                    {isAptSoon?"⏰ موعدك قريب جداً!":"📅 موعدك القادم"}
+                  </div>
+                  <div style={{color:C.text,fontWeight:800,fontSize:16}}>{nextApt.date}</div>
+                  <div style={{color:C.muted,fontSize:13,marginTop:4}}>{nextApt.time} · {nextApt.type}</div>
+                  <div style={{color:C.muted,fontSize:12,marginTop:2}}>🏥 {nextApt.clinic||nextApt.doctor}</div>
+                </div>
+                <div style={{textAlign:"center"}}>
+                  {nextApt.confirmed
+                    ?<div style={{background:C.success+"22",border:"1px solid "+C.success+"44",borderRadius:10,padding:"6px 12px",color:C.success,fontSize:12,fontWeight:700}}>✓ مؤكد</div>
+                    :<div style={{background:C.gold+"22",border:"1px solid "+C.gold+"44",borderRadius:10,padding:"6px 12px",color:C.gold,fontSize:11,fontWeight:700}}>⏳ بانتظار التأكيد</div>
+                  }
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Stats */}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
+            {[{icon:"📅",label:"مواعيد قادمة",val:upcomingApts.length,color:C.accent,action:()=>setTab("apts")},
+              {icon:"💊",label:"روشتات",val:prescriptions.length,color:C.teal,action:()=>setTab("rx")},
+              {icon:"🔬",label:"فحوصات",val:exams.length,color:C.gold,action:()=>setTab("exams")},
+              {icon:"🗓",label:"زيارات سابقة",val:pastApts.length,color:C.muted,action:()=>setTab("apts")}
+            ].map((s,i)=>(
+              <div key={i} onClick={s.action} style={{background:C.card,borderRadius:14,padding:"14px",border:"1px solid "+C.border,cursor:"pointer"}}>
+                <div style={{fontSize:22,marginBottom:6}}>{s.icon}</div>
+                <div style={{color:s.color,fontSize:22,fontWeight:800}}>{s.val}</div>
+                <div style={{color:C.muted,fontSize:11}}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Quick book */}
+          <div onClick={()=>setTab("book")} style={{background:`linear-gradient(135deg,${C.accent}22,${C.teal}11)`,border:"1px solid "+C.accent+"44",borderRadius:16,padding:16,marginBottom:16,cursor:"pointer",display:"flex",alignItems:"center",gap:14}}>
+            <div style={{width:46,height:46,borderRadius:14,background:`linear-gradient(135deg,${C.accent},${C.teal})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>➕</div>
+            <div>
+              <div style={{color:C.text,fontWeight:700,fontSize:14}}>احجز موعد جديد</div>
+              <div style={{color:C.muted,fontSize:12,marginTop:2}}>اختر المكان والوقت المناسب لك</div>
+            </div>
+            <div style={{color:C.accent,fontSize:18,marginRight:"auto"}}>←</div>
+          </div>
+
+          {/* Clinic contacts */}
+          <div style={{background:C.card,borderRadius:14,padding:14,border:"1px solid "+C.border,marginBottom:16}}>
+            <div style={{color:C.text,fontWeight:700,fontSize:13,marginBottom:12}}>📞 تواصل معنا</div>
+            {CLINICS.map(c=>(
+              <div key={c.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,paddingBottom:10,borderBottom:"1px solid "+C.border+"66"}}>
+                <div>
+                  <div style={{color:C.text,fontSize:12,fontWeight:600}}>{c.icon} {c.name}</div>
+                  <div style={{color:C.muted,fontSize:11}}>📍 {c.address}</div>
+                </div>
+                <div style={{display:"flex",gap:6}}>
+                  <a href={"tel:"+c.phone} style={{background:C.teal+"22",border:"1px solid "+C.teal+"33",borderRadius:8,padding:"5px 10px",color:C.teal,fontSize:12,textDecoration:"none"}}>📞</a>
+                  <a href={"https://wa.me/2"+c.phone.replace(/^0/,"")} target="_blank" style={{background:"#25D36622",border:"1px solid #25D36633",borderRadius:8,padding:"5px 10px",color:"#25D366",fontSize:12,textDecoration:"none"}}>💬</a>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>}
+
+        {/* BOOKING */}
+        {!loading&&tab==="book"&&<div style={{animation:"slideUp 0.25s ease"}}>
+          <div style={{color:C.text,fontWeight:700,fontSize:16,marginBottom:4}}>➕ احجز موعد</div>
+          <div style={{color:C.muted,fontSize:12,marginBottom:16}}>اختر المكان والوقت المناسب</div>
+          {bookDone?(
+            <div style={{background:C.success+"22",border:"1px solid "+C.success,borderRadius:16,padding:"30px 20px",textAlign:"center",animation:"slideUp 0.3s ease"}}>
+              <div style={{fontSize:52,marginBottom:12}}>✅</div>
+              <div style={{color:C.success,fontWeight:800,fontSize:18,marginBottom:8}}>تم إرسال طلب الحجز!</div>
+              <div style={{background:C.bg,borderRadius:12,padding:14,marginBottom:16,textAlign:"right"}}>
+                {[["📍",bookForm.clinic],["📅",bookForm.date],["⏰",bookForm.time],["🔬",bookForm.type]].map(([icon,val])=>(
+                  <div key={icon} style={{display:"flex",gap:8,marginBottom:6}}><span>{icon}</span><span style={{color:C.text,fontSize:13}}>{val}</span></div>
+                ))}
+              </div>
+              <div style={{color:C.muted,fontSize:12,marginBottom:20}}>سيتم التواصل معك لتأكيد الموعد</div>
+              <button onClick={()=>{setBookDone(false);setBookForm({clinic:"",date:"",time:"",type:"فحص روتيني",notes:"",isNew:patient.isGuest,newName:"",newPhone:""}); }}
+                style={{background:`linear-gradient(135deg,${C.accent},${C.teal})`,border:"none",borderRadius:10,padding:"10px 24px",color:C.bg,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
+                حجز موعد آخر
+              </button>
+            </div>
+          ):<BookingForm patient={patient} bookForm={bookForm} setBookForm={setBookForm} booking={booking} onBook={doBook}/>}
+        </div>}
+
+        {/* APPOINTMENTS */}
+        {!loading&&tab==="apts"&&<div style={{animation:"slideUp 0.25s ease"}}>
+          <div style={{color:C.text,fontWeight:700,fontSize:16,marginBottom:16}}>📅 مواعيدي</div>
+          {upcomingApts.length>0&&<>
+            <div style={{color:C.accent,fontSize:12,fontWeight:700,marginBottom:10}}>القادمة</div>
+            {upcomingApts.map(a=>(
+              <div key={a.id} style={{background:C.card,border:"1px solid "+(a.confirmed?C.success:C.accent)+"44",borderRadius:16,padding:"14px",marginBottom:10,borderRight:"3px solid "+(a.confirmed?C.success:C.accent)}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                  <div>
+                    <div style={{color:C.text,fontWeight:700,fontSize:14}}>{a.date}</div>
+                    <div style={{color:C.muted,fontSize:12,marginTop:2}}>{a.type}</div>
+                    {a.clinic&&<div style={{color:C.teal,fontSize:11,marginTop:2}}>🏥 {a.clinic}</div>}
+                  </div>
+                  <div style={{textAlign:"center"}}>
+                    <div style={{color:C.accent,fontSize:18,fontWeight:800}}>{a.time}</div>
+                    {a.confirmed
+                      ?<div style={{color:C.success,fontSize:10,fontWeight:700}}>✓ مؤكد</div>
+                      :<div style={{color:C.gold,fontSize:10}}>⏳ بانتظار التأكيد</div>
+                    }
+                  </div>
+                </div>
+                {a.notes&&<div style={{color:C.muted,fontSize:11}}>📝 {a.notes}</div>}
+              </div>
+            ))}
+          </>}
+          {pastApts.length>0&&<>
+            <div style={{color:C.muted,fontSize:12,fontWeight:700,marginTop:16,marginBottom:10}}>السابقة</div>
+            {pastApts.map(a=>(
+              <div key={a.id} style={{background:C.card,border:"1px solid "+C.border,borderRadius:14,padding:"12px 14px",marginBottom:8,opacity:0.75}}>
+                <div style={{display:"flex",justifyContent:"space-between"}}>
+                  <div><div style={{color:C.text,fontSize:13}}>{a.date}</div><div style={{color:C.muted,fontSize:11}}>{a.type}</div></div>
+                  <div style={{color:C.muted,fontSize:14,fontWeight:700}}>{a.time}</div>
+                </div>
+              </div>
+            ))}
+          </>}
+          {appointments.length===0&&<div style={{color:C.muted,textAlign:"center",padding:40}}>لا توجد مواعيد</div>}
+        </div>}
+
+        {/* PRESCRIPTIONS */}
+        {!loading&&tab==="rx"&&<div style={{animation:"slideUp 0.25s ease"}}>
+          <div style={{color:C.text,fontWeight:700,fontSize:16,marginBottom:16}}>💊 روشتاتي ({prescriptions.length})</div>
+          {prescriptions.length===0&&<div style={{color:C.muted,textAlign:"center",padding:40}}>لا توجد روشتات بعد</div>}
+          {prescriptions.map(rx=>(
+            <div key={rx.id} style={{background:C.card,border:"1px solid "+C.border,borderRadius:16,padding:16,marginBottom:14}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+                <div style={{color:C.accent,fontWeight:700,fontSize:14}}>{rx.date}</div>
+                <div style={{color:C.muted,fontSize:11,background:C.bg,padding:"4px 10px",borderRadius:8}}>{rx.eye}</div>
+              </div>
+              <div style={{background:C.bg,borderRadius:10,padding:10,marginBottom:12,border:"1px solid "+C.border}}>
+                <div style={{color:C.text,fontSize:11,fontWeight:700,marginBottom:8}}>👓 كشف النظارة</div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:6,fontSize:10,textAlign:"center"}}>
+                  <div style={{color:C.muted}}>العين</div><div style={{color:C.muted}}>SPH</div><div style={{color:C.muted}}>CYL</div><div style={{color:C.muted}}>AX</div>
+                  <div style={{color:C.text,fontWeight:700}}>يمنى</div><div style={{color:C.text}}>{rx.sphR||"-"}</div><div style={{color:C.text}}>{rx.cylR||"-"}</div><div style={{color:C.text}}>{rx.axisR||"-"}</div>
+                  <div style={{color:C.text,fontWeight:700}}>يسرى</div><div style={{color:C.text}}>{rx.sphL||"-"}</div><div style={{color:C.text}}>{rx.cylL||"-"}</div><div style={{color:C.text}}>{rx.axisL||"-"}</div>
+                </div>
+                {rx.add&&<div style={{color:C.gold,fontSize:11,marginTop:8}}>ADD: {rx.add}</div>}
+              </div>
+              {rx.medicines&&<div style={{background:C.teal+"11",borderRadius:10,padding:10,border:"1px solid "+C.teal+"33"}}>
+                <div style={{color:C.teal,fontSize:11,fontWeight:700,marginBottom:6}}>💊 الأدوية</div>
+                {rx.medicines.split("\n").filter(Boolean).map((m,i)=><div key={i} style={{color:C.text,fontSize:12,marginBottom:4}}>• {m}</div>)}
+              </div>}
+              {rx.notes&&<div style={{color:C.muted,fontSize:11,marginTop:10}}>📝 {rx.notes}</div>}
+            </div>
+          ))}
+        </div>}
+
+        {/* EXAMS */}
+        {!loading&&tab==="exams"&&<div style={{animation:"slideUp 0.25s ease"}}>
+          <div style={{color:C.text,fontWeight:700,fontSize:16,marginBottom:16}}>🔬 نتائج فحوصاتي ({exams.length})</div>
+          {exams.length===0&&<div style={{color:C.muted,textAlign:"center",padding:40}}>لا توجد فحوصات بعد</div>}
+          {exams.map(ex=>(
+            <div key={ex.id} style={{background:C.card,border:"1px solid "+C.border,borderRadius:16,padding:16,marginBottom:14}}>
+              <div style={{color:C.accent,fontWeight:700,fontSize:14,marginBottom:12}}>{ex.date} · {ex.doctor}</div>
+              {ex.chiefComplaint&&<div style={{marginBottom:10}}><div style={{color:C.muted,fontSize:11,marginBottom:4}}>الشكوى</div><div style={{color:C.text,fontSize:13}}>{ex.chiefComplaint}</div></div>}
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
+                {[["حدة الإبصار يمنى",ex.visualAcuityR],["حدة الإبصار يسرى",ex.visualAcuityL],["ضغط العين يمنى",ex.iopR],["ضغط العين يسرى",ex.iopL]].filter(([,v])=>v).map(([l,v])=>(
+                  <div key={l} style={{background:C.bg,borderRadius:8,padding:"8px"}}>
+                    <div style={{color:C.muted,fontSize:10}}>{l}</div>
+                    <div style={{color:C.text,fontWeight:700,fontSize:13}}>{v}</div>
+                  </div>
+                ))}
+              </div>
+              {ex.diagnosis&&<div style={{background:C.accent+"11",borderRadius:10,padding:10,border:"1px solid "+C.accent+"33",marginBottom:8}}>
+                <div style={{color:C.accent,fontSize:11,fontWeight:700,marginBottom:4}}>التشخيص</div>
+                <div style={{color:C.text,fontSize:13}}>{ex.diagnosis}</div>
+              </div>}
+              {ex.treatmentPlan&&<div style={{marginTop:8}}><div style={{color:C.muted,fontSize:11,marginBottom:4}}>خطة العلاج</div><div style={{color:C.text,fontSize:12}}>{ex.treatmentPlan}</div></div>}
+              {ex.followUp&&<div style={{color:C.gold,fontSize:11,marginTop:8}}>📅 موعد المتابعة: {ex.followUp}</div>}
+            </div>
+          ))}
+        </div>}
+        <div style={{height:80}}/>
+      </div>
+
+      {/* Bottom Nav */}
+      <div style={{background:C.surface,borderTop:"1px solid "+C.border,display:"flex",justifyContent:"space-around",padding:"8px 0 20px",flexShrink:0}}>
+        {TABS.map(t=>(
+          <div key={t.id} onClick={()=>setTab(t.id)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,cursor:"pointer",padding:"4px 12px",borderRadius:10,background:tab===t.id?C.accent+"22":"transparent"}}>
+            <div style={{fontSize:20,filter:tab===t.id?"drop-shadow(0 0 6px "+C.accent+")":"none",transform:tab===t.id?"scale(1.15)":"scale(1)",transition:"all 0.2s"}}>{t.icon}</div>
+            <div style={{color:tab===t.id?C.accent:C.muted,fontSize:9,fontWeight:tab===t.id?700:400}}>{t.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Rating Modal */}
+      {ratingTarget&&<Modal title="⭐ قيّم زيارتك" onClose={()=>setRatingTarget(null)}>
+        <RatingPrompt visit={ratingTarget} patient={patient} onDone={()=>markVisitRated(ratingTarget.id)}/>
+      </Modal>}
+
+      {toast&&<Toast msg={toast.msg} color={toast.color} onDone={()=>setToast(null)}/>}
+    </div>
+  );
+}
+
+function App(){
+  const [patient,setPatient]=useState(()=>{try{const p=sessionStorage.getItem("iapp_patient");return p?JSON.parse(p):null;}catch{return null;}});
+  const login=p=>{sessionStorage.setItem("iapp_patient",JSON.stringify(p));setPatient(p);};
+  const logout=()=>{sessionStorage.removeItem("iapp_patient");setPatient(null);};
+  if(!patient)return <Login onLogin={login}/>;
+  return <PatientApp patient={patient} onLogout={logout}/>;
+}
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+</script>
+</body>
+</html>
