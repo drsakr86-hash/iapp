@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0A0F1E">
+<title>I App — الطبيب</title>
+<style>
+  :root{
+    --bg:#0A0F1E; --surface:#111827; --card:#141E30; --border:#1E2D45;
+    --accent:#00C2FF; --teal:#00E5CC; --gold:#FFB830;
+    --text:#E8F4FF; --muted:#6B8CAE; --danger:#FF4D6D; --success:#00E5B0;
+    --purple:#A78BFA;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:var(--bg);color:var(--text);
+       font-family:'Segoe UI',Tahoma,Arial,sans-serif;line-height:1.6;
+       padding-bottom:env(safe-area-inset-bottom)}
+  .app{max-width:820px;margin:0 auto;padding:12px}
+
+  header{display:flex;align-items:center;gap:10px;padding:10px 4px 14px}
+  .logo{font-size:22px}
+  .title{font-weight:800;font-size:16px}
+  .who{color:var(--muted);font-size:11px}
+  .spacer{flex:1}
+  .live{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted)}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--muted)}
+  .dot.on{background:var(--success);box-shadow:0 0 8px var(--success)}
+
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;
+        padding:14px;margin-bottom:12px}
+  .card h2{font-size:14px;margin:0 0 11px;color:var(--accent)}
+  input,select,textarea{width:100%;background:var(--bg);border:1px solid var(--border);
+        border-radius:10px;padding:10px 12px;color:var(--text);font-size:13.5px;
+        outline:none;box-sizing:border-box;font-family:inherit;direction:rtl}
+  input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+  label{display:block;color:var(--muted);font-size:11px;margin:0 0 5px 2px}
+  .field{margin-bottom:10px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  button{border:none;border-radius:10px;padding:11px 16px;font-weight:700;font-size:13px;
+         cursor:pointer;font-family:inherit;color:var(--bg);
+         background:linear-gradient(135deg,var(--accent),var(--teal))}
+  button.ghost{background:transparent;border:1px solid var(--border);color:var(--muted)}
+  button.sm{padding:7px 12px;font-size:11px;border-radius:8px}
+  button:disabled{opacity:.45}
+  .full{width:100%}
+
+  .tabs{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px}
+  .tab{white-space:nowrap;background:var(--card);border:1px solid var(--border);
+       color:var(--muted);border-radius:10px;padding:9px 14px;font-size:12.5px;
+       font-weight:700;cursor:pointer}
+  .tab.on{background:linear-gradient(135deg,var(--accent),var(--teal));
+          color:var(--bg);border-color:transparent}
+  .tab .n{display:inline-block;background:var(--danger);color:#fff;border-radius:9px;
+          padding:0 6px;font-size:10px;margin-right:5px;font-weight:800}
+
+  /* بطاقات الإحصاء */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:9px;margin-bottom:14px}
+  .stat{background:var(--card);border:1px solid var(--border);border-radius:14px;
+        padding:13px 10px;text-align:center;cursor:pointer;transition:border-color .15s}
+  .stat:active{border-color:var(--accent)}
+  .stat .v{font-size:24px;font-weight:800;line-height:1.2}
+  .stat .l{color:var(--muted);font-size:11px;margin-top:3px}
+
+  .apt{background:var(--card);border:1px solid var(--border);border-radius:14px;
+       padding:12px;margin-bottom:10px;position:relative;overflow:hidden}
+  .apt::before{content:'';position:absolute;top:0;right:0;width:4px;height:100%;background:var(--muted)}
+  .apt.s-REQUESTED::before,.apt.s-PENDING::before{background:var(--gold)}
+  .apt.s-CONFIRMED::before{background:var(--accent)}
+  .apt.s-ARRIVED::before,.apt.s-WAITING::before{background:var(--teal)}
+  .apt.s-IN_CLINIC::before{background:var(--success)}
+  .apt.s-COMPLETED::before{background:var(--muted)}
+  .apt.s-CANCELLED::before,.apt.s-NO_SHOW::before{background:var(--danger)}
+  .apt-top{display:flex;gap:11px}
+  .time{text-align:center;min-width:58px}
+  .time b{display:block;color:var(--accent);font-size:15px;font-weight:800;direction:ltr}
+  .time span{display:block;color:var(--muted);font-size:9.5px;direction:ltr}
+  .info{flex:1;min-width:0}
+  .nm{font-weight:700;font-size:14px}
+  .chip{display:inline-block;border-radius:7px;padding:2px 8px;font-size:10px;font-weight:800}
+  .meta{color:var(--muted);font-size:11px;margin-top:2px}
+  .wait{color:var(--gold);font-size:11px;font-weight:700;margin-top:3px}
+  .acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;
+        border-top:1px solid var(--border);padding-top:10px}
+
+  .prow{display:flex;align-items:center;gap:10px;padding:11px 12px;
+        background:var(--card);border:1px solid var(--border);border-radius:12px;
+        margin-bottom:8px;cursor:pointer}
+  .avatar{width:36px;height:36px;border-radius:50%;flex-shrink:0;
+          background:linear-gradient(135deg,var(--accent),var(--teal));
+          display:flex;align-items:center;justify-content:center;
+          color:var(--bg);font-weight:800;font-size:14px}
+
+  .empty{text-align:center;color:var(--muted);padding:32px 14px;font-size:13px}
+  .empty div:first-child{font-size:34px;margin-bottom:8px;opacity:.5}
+
+  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);
+         background:var(--surface);border:1px solid var(--accent);color:var(--text);
+         border-radius:12px;padding:11px 18px;font-size:12.5px;z-index:90;
+         max-width:90vw;text-align:center;box-shadow:0 8px 28px rgba(0,0,0,.5)}
+  .toast.bad{border-color:var(--danger);color:var(--danger)}
+  .toast.good{border-color:var(--success);color:var(--success)}
+
+  .login{min-height:100vh;display:flex;flex-direction:column;align-items:center;
+         justify-content:center;padding:26px}
+  .login .box{width:100%;max-width:330px}
+  .err{color:var(--danger);font-size:12px;text-align:center;margin-top:9px;min-height:16px}
+</style>
+</head>
+<body>
+<div id="root"><div class="empty" style="padding-top:100px"><div>👁</div>جاري التحميل...</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0"></script>
+<script src="./iapp-core.js?v=8"></script>
+<script src="./appointment-service.js?v=8"></script>
+<script src="./js/models.js?v=8"></script>
+<script src="./js/svc-patients.js?v=8"></script>
+<script src="./js/svc-clinical.js?v=8"></script>
+<script src="./js/svc-rx.js?v=8"></script>
+<script>
+(function(){
+"use strict";
+var APP_VERSION='P5.1';           // الدفعة الأولى من المرحلة 5
+var root=document.getElementById('root');
+var M, SVC, A;
+
+var S={ profile:null, tab:'dash', clinic:null, clinics:[],
+        stats:{}, today:[], live:[], due:[],
+        unsub:null, liveOn:false, liveStatus:null, loading:true };
+
+// ── أدوات عرض ────────────────────────────────────────────
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+function toast(m,k){ var d=document.createElement('div');
+  d.className='toast'+(k?' '+k:''); d.textContent=m; document.body.appendChild(d);
+  setTimeout(function(){d.remove();},3600); }
+function initials(n){ return (String(n||'?').trim()[0]||'?'); }
+
+// ════════════════════════════════════════════════════════
+// المصادقة
+// ════════════════════════════════════════════════════════
+function renderLogin(err,busy){
+  root.innerHTML='<div class="login"><div class="box">'
+   +'<div style="text-align:center;margin-bottom:26px">'
+   +'<div style="font-size:46px">👁</div>'
+   +'<div style="color:var(--accent);font-weight:800;font-size:21px">I App</div>'
+   +'<div style="color:var(--muted);font-size:12px">تطبيق الطبيب · '
+   +'<b style="color:var(--gold)">'+APP_VERSION+'</b></div></div>'
+   +'<div class="field"><input id="em" type="email" dir="ltr" placeholder="البريد الإلكتروني" autocomplete="username"></div>'
+   +'<div class="field"><input id="pw" type="password" placeholder="كلمة المرور" autocomplete="current-password"></div>'
+   +'<button class="full" id="go"'+(busy?' disabled':'')+'>'+(busy?'...':'دخول')+'</button>'
+   +'<div class="err">'+esc(err||'')+'</div></div></div>';
+
+  var go=function(){
+    var em=document.getElementById('em').value, pw=document.getElementById('pw').value;
+    if(!em||!pw){ renderLogin('أدخل البريد وكلمة المرور'); return; }
+    renderLogin('',true);
+    IAPP.signIn(em,pw).then(function(r){
+      if(!r.ok){ renderLogin(r.error); return; }
+      // الدور يُقرأ من الخادم؛ هذا الفحص للتجربة فقط، و RLS هو الأمان
+      if(['doctor','admin'].indexOf(r.profile.role)===-1){
+        IAPP.signOut();
+        renderLogin('هذا الحساب ('+(IAPP.ROLE_AR[r.profile.role]||r.profile.role)+') غير مصرّح له');
+        return;
+      }
+      IAPP._profile=r.profile; S.profile=r.profile; boot();
+    }).catch(function(e){ renderLogin(e.message); });
+  };
+  document.getElementById('go').onclick=go;
+  document.getElementById('pw').onkeydown=function(e){ if(e.key==='Enter') go(); };
+}
+
+// ════════════════════════════════════════════════════════
+// التحميل
+// ════════════════════════════════════════════════════════
+async function boot(){
+  try{
+    S.clinics = await SVC.refs.clinics();
+    if(!S.clinic && S.clinics.length) S.clinic = S.clinics[0].id;
+  }catch(e){
+    root.innerHTML='<div class="empty"><div>⚠️</div>تعذّر تحميل العيادات<br>'
+      +'<span style="font-size:11px">'+esc(e.message)+'</span></div>';
+    return;
+  }
+  subscribe();
+  await load();
+}
+
+function subscribe(){
+  if(S.unsub) try{S.unsub();}catch(e){}
+  // تحديث فوري — لا استقصاء
+  S.unsub = SVC.appointments.subscribe({
+    clinicId:S.clinic, key:'doc5',
+    onChange:function(){ load(); },
+    onReady:function(st){ S.liveOn=(st==='SUBSCRIBED'); S.liveStatus=st; render(); }
+  });
+}
+
+async function load(){
+  try{
+    var res = await Promise.all([
+      SVC.appointments.today(S.clinic),
+      SVC.followups.due(M.today(), S.clinic),
+      SVC.visits.countToday(S.clinic),
+      SVC.patients.count()
+    ]);
+    S.today = res[0]||[];
+    S.due   = res[1]||[];
+    S.live  = S.today.filter(function(a){ return A.isLive(a.status); });
+    S.stats = {
+      appts: S.today.length,
+      waiting: S.today.filter(function(a){ return a.status==='ARRIVED'||a.status==='WAITING'; }).length,
+      inClinic: S.today.filter(function(a){ return a.status==='IN_CLINIC'; }).length,
+      completed: res[2]||0,
+      due: S.due.length,
+      patients: res[3]||0
+    };
+  }catch(e){ toast(e.message,'bad'); }
+  S.loading=false; render();
+}
+
+// ════════════════════════════════════════════════════════
+// العرض
+// ════════════════════════════════════════════════════════
+function aptCard(a, withActions){
+  var lab=A.statusLabel(a.status), wait=A.waitLabel(a);
+  return '<div class="apt s-'+a.status+'">'
+   +'<div class="apt-top">'
+     +'<div class="time"><b>'+esc((a.scheduled_time||'').slice(0,5))+'</b>'
+     +'<span>'+esc(a.scheduled_date||'')+'</span></div>'
+     +'<div class="info">'
+       +'<div class="nm">'+esc(a.display_name||'—')
+       +(a.patient_id?'':' <span style="color:var(--gold);font-size:10px">(زائر)</span>')+'</div>'
+       +'<div class="meta"><span class="chip" style="background:'+lab.color+'22;color:'+lab.color+'">'
+       +lab.icon+' '+lab.ar+'</span>'
+       +(a.appointment_type?' · '+esc(a.appointment_type):'')
+       +(a.room?' · غرفة '+esc(a.room):'')+'</div>'
+       +(wait&&['ARRIVED','WAITING'].indexOf(a.status)>-1
+          ?'<div class="wait">⏱ ينتظر منذ '+esc(wait)+'</div>':'')
+     +'</div></div>'
+   +(withActions?'<div class="acts" data-acts="'+a.id+'"></div>':'')
+   +'</div>';
+}
+
+function render(){
+  if(!S.profile) return;
+  var h='<div class="app"><header>'
+   +'<span class="logo">👁</span>'
+   +'<div><div class="title">'+esc(S.profile.fullName||'الطبيب')+'</div>'
+   +'<div class="who">'+esc(S.profile.email)+' · <b style="color:var(--gold)">'
+   +APP_VERSION+'</b></div></div>'
+   +'<div class="spacer"></div>'
+   +'<div class="live"><span class="dot'+(S.liveOn?' on':'')+'"></span>'
+   +(S.liveOn?'مباشر':(S.liveStatus&&S.liveStatus!=='SUBSCRIBED'?'غير متصل':'...'))+'</div>'
+   +'<button class="ghost sm" id="out">خروج</button></header>'
+
+   +'<div class="tabs">'
+     +'<div class="tab'+(S.tab==='dash'?' on':'')+'" data-tab="dash">اليوم</div>'
+     +'<div class="tab'+(S.tab==='wait'?' on':'')+'" data-tab="wait">غرفة الانتظار'
+       +(S.live.length?'<span class="n">'+S.live.length+'</span>':'')+'</div>'
+     +'<div class="tab'+(S.tab==='due'?' on':'')+'" data-tab="due">المتابعات'
+       +(S.due.length?'<span class="n">'+S.due.length+'</span>':'')+'</div>'
+   +'</div>';
+
+  if(S.clinics.length>1){
+    h+='<div class="field"><select id="cl">'+S.clinics.map(function(c){
+      return '<option value="'+c.id+'"'+(c.id===S.clinic?' selected':'')+'>'+esc(c.name_ar)+'</option>';
+    }).join('')+'</select></div>';
+  }
+
+  if(S.tab==='dash'){
+    var st=S.stats;
+    h+='<div class="stats">'
+      +stat(st.appts,'مواعيد اليوم','var(--accent)','dash')
+      +stat(st.waiting,'في الانتظار','var(--teal)','wait')
+      +stat(st.inClinic,'داخل العيادة','var(--success)','wait')
+      +stat(st.completed,'زيارات مكتملة','var(--muted)','')
+      +stat(st.due,'متابعات مستحقة','var(--gold)','due')
+      +stat(st.patients,'إجمالي المرضى','var(--purple)','')
+      +'</div>'
+      +'<div style="color:var(--muted);font-size:12px;margin-bottom:9px">'
+      +esc(M.fmtDay(M.today()))+'</div>';
+    h+= S.today.length ? S.today.map(function(a){return aptCard(a,true);}).join('')
+      : '<div class="empty"><div>📅</div>لا مواعيد اليوم</div>';
+  }
+
+  if(S.tab==='wait'){
+    h+='<div style="color:var(--muted);font-size:12px;margin-bottom:10px">'
+      +'المرضى الموجودون في العيادة الآن</div>';
+    h+= S.live.length ? S.live.map(function(a){return aptCard(a,true);}).join('')
+      : '<div class="empty"><div>🪑</div>غرفة الانتظار فارغة</div>';
+  }
+
+  if(S.tab==='due'){
+    h+='<div style="color:var(--muted);font-size:12px;margin-bottom:10px">'
+      +'متابعات حان موعدها أو تأخّرت</div>';
+    h+= S.due.length ? S.due.map(function(f){
+      var late = f.due_date < M.today();
+      return '<div class="prow">'
+        +'<div class="avatar">'+esc(initials(f._name))+'</div>'
+        +'<div style="flex:1;min-width:0">'
+        +'<div style="font-weight:700;font-size:13.5px">'+esc(f._name||'—')+'</div>'
+        +'<div class="meta">'+esc(f._code||'')
+        +' · <span style="color:'+(late?'var(--danger)':'var(--gold)')+'">'
+        +esc(f.due_date)+(late?' (متأخر)':'')+'</span>'
+        +(f.reason?' · '+esc(f.reason):'')+'</div></div>'
+        +(f._phone?'<button class="ghost sm" data-wa="'+esc(M.waPhone(f._phone))+'">💬</button>':'')
+        +'<button class="ghost sm" data-fudone="'+f.id+'">تم</button>'
+        +'</div>';
+    }).join('') : '<div class="empty"><div>🔔</div>لا متابعات مستحقة</div>';
+  }
+
+  h+='</div>'; root.innerHTML=h; wire(); paintActions();
+}
+
+function stat(v,l,color,tab){
+  return '<div class="stat"'+(tab?' data-go="'+tab+'"':'')+'>'
+    +'<div class="v" style="color:'+color+'">'+(v==null?'—':v)+'</div>'
+    +'<div class="l">'+l+'</div></div>';
+}
+
+/** الأزرار تُشتق من جدول الانتقالات في الخادم — لا قواعد مكررة هنا */
+function paintActions(){
+  var rows = S.tab==='wait' ? S.live : S.today;
+  rows.forEach(function(a){
+    var box=document.querySelector('[data-acts="'+a.id+'"]');
+    if(!box) return;
+    SVC.appointments.actionsFor(a,S.profile.role).then(function(acts){
+      if(!acts.length){ box.remove(); return; }
+      acts.forEach(function(ac){
+        var b=document.createElement('button');
+        b.className='sm'+(ac.to==='CANCELLED'||ac.to==='NO_SHOW'?' ghost'
+                        :(ac.to==='IN_CLINIC'||ac.to==='COMPLETED'?'':' ghost'));
+        b.textContent=ac.label;
+        b.onclick=function(){ runAction(a,ac); };
+        box.appendChild(b);
+      });
+    }).catch(function(){ box.remove(); });
+  });
+}
+
+async function runAction(a,ac){
+  if(ac.requiresReason){
+    var r=prompt('السبب (إلزامي):','');
+    if(r===null) return;
+    if(r.trim().length<3){ toast('اكتب سبباً واضحاً','bad'); return; }
+    try{ await ac.run(r.trim()); toast('تم','good'); load(); }
+    catch(e){ toast(e.message,'bad'); }
+    return;
+  }
+  try{ await ac.run(); toast('تم: '+ac.label,'good'); load(); }
+  catch(e){ toast(e.message,'bad'); }
+}
+
+function wire(){
+  var o=document.getElementById('out');
+  if(o) o.onclick=async function(){
+    if(S.unsub) try{S.unsub();}catch(e){}
+    await IAPP.signOut(); S.profile=null; renderLogin();
+  };
+  document.querySelectorAll('[data-tab]').forEach(function(el){
+    el.onclick=function(){ S.tab=el.getAttribute('data-tab'); render(); };
+  });
+  document.querySelectorAll('[data-go]').forEach(function(el){
+    el.onclick=function(){ S.tab=el.getAttribute('data-go'); render(); };
+  });
+  var cl=document.getElementById('cl');
+  if(cl) cl.onchange=function(){ S.clinic=cl.value; subscribe(); load(); };
+  document.querySelectorAll('[data-wa]').forEach(function(el){
+    el.onclick=function(e){ e.stopPropagation();
+      window.open('https://wa.me/'+el.getAttribute('data-wa'),'_blank'); };
+  });
+  document.querySelectorAll('[data-fudone]').forEach(function(el){
+    el.onclick=async function(e){ e.stopPropagation();
+      try{ await SVC.followups.setStatus(el.getAttribute('data-fudone'),'completed');
+           toast('تمت المتابعة','good'); load(); }
+      catch(err){ toast(err.message,'bad'); }
+    };
+  });
+}
+
+// ════════════════════════════════════════════════════════
+(async function(){
+  var missing=[];
+  if(!window.IAPP) missing.push('iapp-core.js');
+  else{
+    if(!IAPP.appointments) missing.push('appointment-service.js');
+    if(!IAPP.models)       missing.push('js/models.js');
+    if(!IAPP.svc||!IAPP.svc.patients)      missing.push('js/svc-patients.js');
+    if(!IAPP.svc||!IAPP.svc.visits)        missing.push('js/svc-clinical.js');
+    if(!IAPP.svc||!IAPP.svc.prescriptions) missing.push('js/svc-rx.js');
+  }
+  if(missing.length){
+    root.innerHTML='<div class="empty"><div>⚠️</div>ملفات ناقصة:<br>'
+      +'<span style="font-size:11px;direction:ltr;display:block;margin-top:8px">'
+      +missing.join('<br>')+'</span>'
+      +'<div style="font-size:11px;margin-top:10px">تأكد من رفع مجلد js بجوار الصفحة</div></div>';
+    return;
+  }
+  M=IAPP.models; SVC=IAPP.svc; A=IAPP.appointments;
+
+  var s=await IAPP.getSession();
+  if(!s){ renderLogin(); return; }
+  var p=await IAPP.getProfile();
+  if(!p||['doctor','admin'].indexOf(p.role)===-1){
+    await IAPP.signOut(); renderLogin(p?'هذا الحساب غير مصرّح له':''); return;
+  }
+  IAPP._profile=p; S.profile=p; boot();
+})();
+})();
+</script>
+</body>
+</html>
