@@ -208,16 +208,16 @@
 <div id="print"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0"></script>
-<script src="./iapp-core.js?v=10"></script>
-<script src="./appointment-service.js?v=10"></script>
-<script src="./js/models.js?v=10"></script>
-<script src="./js/svc-patients.js?v=10"></script>
-<script src="./js/svc-clinical.js?v=10"></script>
-<script src="./js/svc-rx.js?v=10"></script>
+<script src="./iapp-core.js?v=11"></script>
+<script src="./appointment-service.js?v=11"></script>
+<script src="./js/models.js?v=11"></script>
+<script src="./js/svc-patients.js?v=11"></script>
+<script src="./js/svc-clinical.js?v=11"></script>
+<script src="./js/svc-rx.js?v=11"></script>
 <script>
 (function(){
 "use strict";
-var APP_VERSION='P5.3';          // الدفعة الثالثة: الوصفات والطباعة
+var APP_VERSION='P8';            // المرحلة 8: محرك المواعيد الموحّد
 var root=document.getElementById('root');
 var mroot=document.getElementById('mroot');
 var proot=document.getElementById('print');
@@ -419,8 +419,9 @@ async function load(quiet){
     S.live  = S.today.filter(function(a){ return A.isLive(a.status); });
     S.stats = {
       appts: S.today.length,
-      waiting: S.today.filter(function(a){ return a.status==='ARRIVED'||a.status==='WAITING'; }).length,
-      inClinic: S.today.filter(function(a){ return a.status==='IN_CLINIC'; }).length,
+      // المرحلة 8: لا قوائم حالات مكتوبة هنا — المعنى من المحرّك وحده
+      waiting: S.today.filter(function(a){ return A.isQueued(a.status); }).length,
+      inClinic: S.today.filter(function(a){ return A.isInClinic(a.status); }).length,
       completed: res[2]||0,
       due: S.due.length,
       patients: res[3]||0
@@ -584,7 +585,7 @@ function aptCard(a, withActions){
        +lab.icon+' '+lab.ar+'</span>'
        +(a.appointment_type?' · '+esc(a.appointment_type):'')
        +(a.room?' · غرفة '+esc(a.room):'')+'</div>'
-       +(wait&&['ARRIVED','WAITING'].indexOf(a.status)>-1
+       +(wait&&A.isQueued(a.status)
           ?'<div class="wait">⏱ ينتظر منذ '+esc(wait)+'</div>':'')
      +'</div></div>'
    +(withActions?'<div class="acts" data-acts="'+a.id+'"></div>':'')
@@ -1206,11 +1207,28 @@ async function patientForm(p){
 // ════════════════════════════════════════════════════════
 // نموذج الزيارة
 // ════════════════════════════════════════════════════════
+/**
+ * المرحلة 8 — الوصلة المفقودة.
+ * كان الطبيب يفتح الكشف فيصير الموعد IN_CLINIC، ثم يحفظ الزيارة، ثم يعود
+ * ليضغط «إنهاء» على بطاقة الموعد يدوياً. خطوتان منفصلتان لحدث واحد، وإن نسي
+ * الثانية بقي المريض «داخل العيادة» على شاشة السكرتارية إلى آخر اليوم.
+ * الآن: الزيارة تحمل رقم الموعد، وحفظها يُنهيه.
+ */
+function activeAptFor(patientId){
+  var l=(S.today||[]).filter(function(a){
+    return a.patient_id===patientId && A.isInClinic(a.status); });
+  return l.length ? l[0] : null;
+}
+
 function visitForm(v){
   if(!S.pt) return;
   v = v || {};
   var isNew=!v.id;
-  var h=fld('تاريخ الزيارة',I('v_date',v.visit_date||M.today(),'date'))
+  var apt = isNew ? activeAptFor(S.pt.id) : null;
+  var h=(apt?'<div class="note">🔗 مرتبطة بموعد '
+            +esc((apt.scheduled_time||'').slice(0,5))
+            +' — سيُنهى الموعد تلقائياً عند الحفظ</div>':'')
+   +fld('تاريخ الزيارة',I('v_date',v.visit_date||M.today(),'date'))
    +fld('نوع الزيارة',SEL('v_type',pairsObj(M.VISIT_TYPE),v.visit_type||'routine','—'))
    +combo('الشكوى الرئيسية','v_cc',v.chief_complaint,M.COMPLAINTS,'add')
    +fld('الخلاصة',T('v_sum',v.summary,2))
@@ -1223,6 +1241,7 @@ function visitForm(v){
     document.getElementById('save').onclick=async function(){
       var row={
         patient_id:S.pt.id, clinic_id:S.clinic||null, doctor_id:S.doctorId||null,
+        appointment_id: apt ? apt.id : null,
         visit_date:gv('v_date'), visit_type:gv('v_type')||'routine',
         chief_complaint:gv('v_cc'), summary:gv('v_sum'), notes:gv('v_notes')
       };
@@ -1230,8 +1249,19 @@ function visitForm(v){
       if(!chk.ok){ toast(chk.errors[0],'bad'); return; }
       busy('save',true,'حفظ');
       try{
-        if(isNew) await SVC.visits.create(row); else await SVC.visits.update(v.id,row);
-        closeSheet(); toast('تم حفظ الزيارة','good');
+        var saved;
+        if(isNew) saved = await SVC.visits.create(row);
+        else      saved = await SVC.visits.update(v.id,row);
+
+        // إنهاء الموعد لا يُبطل الزيارة إن فشل: الزيارة محفوظة فعلاً، والفشل
+        // يُقال صراحةً بدل أن يُبتلع. الأسباب الواردة: شخص آخر أنهاه قبلك،
+        // أو انقطاع الشبكة — وكلاهما يُعالَج بتحديث الشاشة لا بإعادة الحفظ.
+        var extra='';
+        if(apt && saved && saved.id){
+          try{ await SVC.appointments.complete(apt.id, saved.id); extra=' وأُنهي الموعد'; }
+          catch(err){ toast('حُفظت الزيارة، لكن إنهاء الموعد تعذّر: '+err.message,'bad',7000); }
+        }
+        closeSheet(); if(!apt || extra) toast('تم حفظ الزيارة'+extra,'good');
         S.ptTab='visits'; loadPtTab(true); load(true);
       }catch(e){ busy('save',false,'حفظ'); toast(e.message,'bad',6000); }
     };
