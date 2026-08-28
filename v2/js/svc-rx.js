@@ -223,9 +223,10 @@
     today: function(clinicId){
       return IAPP.appointments.board({ clinicId:clinicId, date:M.today() });
     },
+    // المرحلة 8: كانت هذه القائمة نسخة ثانية من قاعدة «من في العيادة الآن».
+    // صارت تُقرأ من المحرّك نفسه — لا تعريف مكرر.
     live: function(clinicId){
-      return IAPP.appointments.board({ clinicId:clinicId, date:M.today(),
-        status:['ARRIVED','WAITING','IN_CLINIC'] });
+      return IAPP.appointments.liveBoard(clinicId, M.today());
     },
     slots: function(clinicId, date, doctorId){
       return IAPP.appointments.availableSlots(clinicId, date, doctorId||null);

@@ -122,6 +122,51 @@
   function bad(r,msg){ r.ok=false; r.errors.push(msg); return r; }
 
   /** @typedef {{full_name:string, patient_code?:string, phone?:string}} Patient */
+  /** العمر بالسنوات من تاريخ ميلاد، أو null إن كان التاريخ غير صالح. */
+  M.ageFrom = function(dob){
+    if(!M.isDate(dob)) return null;
+    var d=new Date(dob+'T00:00:00'), n=new Date();
+    var y=n.getFullYear()-d.getFullYear();
+    var m=n.getMonth()-d.getMonth();
+    if(m<0 || (m===0 && n.getDate()<d.getDate())) y--;
+    return y;
+  };
+
+  /**
+   * يحوّل خطأ PostgreSQL إلى جملة عربية مفيدة.
+   * بدونها تصل للطبيب رسائل مثل:
+   *   new row for relation "patients" violates check constraint
+   *   "patients_date_of_birth_check"
+   * وهي صحيحة تماماً ولا تقول له ماذا يفعل.
+   */
+  var DB_ERRORS = {
+    patients_date_of_birth_check : 'تاريخ الميلاد في المستقبل — راجع السنة',
+    patients_patient_code_check  : 'كود المريض يجب أن يكون بصيغة P-0001',
+    patients_patient_code_key    : 'كود المريض مستعمل لمريض آخر',
+    patients_national_id_key     : 'الرقم القومي مسجَّل لمريض آخر',
+    patients_full_name_check     : 'اسم المريض قصير جداً',
+    patients_email_check         : 'البريد الإلكتروني غير صحيح',
+    patients_blood_type_check    : 'فصيلة دم غير معروفة',
+    patients_age_at_registration_check : 'العمر يجب أن يكون بين 0 و130',
+    refractions_cylinder_check   : 'قوة الاسطوانة خارج المدى (±15)',
+    refractions_sphere_check     : 'القوة الكروية خارج المدى (±30)',
+    refractions_axis_check       : 'المحور يجب أن يكون بين 0 و180',
+    refractions_ipd_mm_check     : 'المسافة بين الحدقتين خارج المدى (40–85)',
+    chk_cyl_axis                 : 'أدخل المحور مع قوة الاسطوانة',
+    chk_visit_date_sane          : 'تاريخ الزيارة غير منطقي',
+    slot_taken                   : 'هذا الوقت محجوز بالفعل',
+    already_in_state             : 'نُفِّذ هذا الإجراء بالفعل — حدّث الشاشة',
+    invalid_transition           : 'هذا الانتقال غير مسموح في دورة الموعد',
+    forbidden_transition         : 'دورك لا يسمح بهذا الإجراء',
+    no_identity                  : 'يجب تسجيل الدخول أولاً'
+  };
+
+  M.dbError = function(err){
+    var raw = (err && (err.message || err.details)) || String(err || '');
+    for (var k in DB_ERRORS) if (raw.indexOf(k) !== -1) return DB_ERRORS[k];
+    return raw;
+  };
+
   M.validatePatient = function(p){
     var r=V();
     if(!M.str(p.full_name) || M.str(p.full_name).length<2)
@@ -136,6 +181,17 @@
       bad(r,'البريد الإلكتروني غير صحيح');
     if(p.date_of_birth && !M.isDate(p.date_of_birth))
       bad(r,'تاريخ الميلاد غير صحيح');
+    // قاعدة البيانات ترفض تاريخ ميلاد في المستقبل، وكان التحقق هنا يفحص
+    // الصيغة فقط. النتيجة: سنة مكتوبة بالخطأ في منتقي التاريخ تمرّ من
+    // المتصفح ثم ترتد برسالة إنجليزية عن check constraint لا يفهمها أحد.
+    else if(p.date_of_birth && p.date_of_birth > M.today())
+      bad(r,'تاريخ الميلاد في المستقبل — راجع السنة');
+    // العمر وتاريخ الميلاد حقلان منفصلان، وتناقضهما يفسد الحسابات لاحقاً
+    if(p.date_of_birth && M.isDate(p.date_of_birth) && age!=null){
+      var y=M.ageFrom(p.date_of_birth);
+      if(y!=null && Math.abs(y-age)>1)
+        bad(r,'العمر ('+age+') لا يطابق تاريخ الميلاد ('+y+' سنة)');
+    }
     return r;
   };
 

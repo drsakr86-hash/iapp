@@ -15,6 +15,8 @@ function find(name, dirs){
 }
 const F_HTML   = find('doctor.html', ['.','..']);
 const F_MODELS = find('models.js',   ['.','js','../js']);
+// المرحلة 8: المحرّك الحقيقي يدخل الاختبار كما هو
+const F_APTSVC = find('appointment-service.js', ['.','..','../..']);
 
 let pass=0, fail=0, fails=[];
 function ok(n,c,d){ if(c) pass++; else { fail++; fails.push(n+(d?' — '+d:'')); } }
@@ -32,19 +34,31 @@ const PATIENTS = [
     gender:'female', date_of_birth:'1990-05-10', is_active:false }
 ];
 
+// تواريخ الاختبار كانت مكتوبة نصاً: '2026-08-27'. الاختبار نجح يوم كتابته
+// وسقط في اليوم التالي لأن «زيارة اليوم» لم تعد اليوم. تُحسب الآن.
+// معرَّفتان هنا لجانب Node، ومكرَّرتان داخل stub لأنه يُنفَّذ في jsdom منفصلاً.
+const TODAY = new Date().toISOString().slice(0,10);
+const DAYS = n => new Date(Date.now()+n*864e5).toISOString().slice(0,10);
+
 const stub = `
+const TODAY = new Date().toISOString().slice(0,10);
+const DAYS = n => new Date(Date.now()+n*864e5).toISOString().slice(0,10);
+
 window.IAPP = window.IAPP || {};
 IAPP.ROLE_AR = { doctor:'طبيب', admin:'مدير', secretary:'سكرتير', patient:'مريض' };
 IAPP.getSession = async () => ({ user:{id:'u1'} });
 IAPP.getProfile = async () => ({ role:'doctor', email:'doctor@iapp.local', fullName:'د. عبده', id:'u1' });
 IAPP.signOut = async () => true;
-IAPP.appointments = {
-  isLive: s => ['ARRIVED','WAITING','IN_CLINIC'].indexOf(s)>-1,
-  statusLabel: s => ({ar:s, color:'#00C2FF', icon:'●'}),
-  waitLabel: () => '12 دقيقة',
-  actionsFor: async () => ([{to:'IN_CLINIC', label:'استدعاء', run:async()=>true}]),
-  subscribe: o => { window.__onChange = o.onChange; if(o.onReady) o.onReady('SUBSCRIBED'); return ()=>{}; }
-};
+// المرحلة 8: لا ننسخ دوال المحرّك هنا. appointment-service.js الحقيقي محمَّل
+// بالفعل، ونستبدل ما يلمس الشبكة فقط — وإلا صار ملف الاختبار نسخة سادسة
+// من قواعد الحالات، وهو ما تمنعه هذه المرحلة أصلاً.
+IAPP.appointments.actionsFor = async () => ([{to:'IN_CLINIC', label:'استدعاء', run:async()=>true}]);
+IAPP.appointments.subscribe  = o => { window.__onChange = o.onChange;
+  if(o.onReady) o.onReady('SUBSCRIBED'); return ()=>{}; };
+IAPP.appointments.liveBoard  = async () => ([]);
+IAPP.appointments.complete   = async (id,v) => { window.__calls.complete={id:id,visitId:v};
+  if(window.__completeFails) throw new Error('الموعد أُنهي من جهاز آخر');
+  return 'COMPLETED'; };
 const P = ${JSON.stringify(PATIENTS)};
 IAPP.svc = {
   refs: { clinics: async()=>([{id:'c1',name_ar:'دمنهور'},{id:'c2',name_ar:'الرحمانية'}]),
@@ -62,7 +76,7 @@ IAPP.svc = {
     archive: async()=>true, unarchive: async()=>true
   },
   visits: {
-    listByPatient: async()=>([{id:'v1', visit_date:'2026-08-27', visit_type:'follow_up',
+    listByPatient: async()=>([{id:'v1', visit_date:TODAY, visit_type:'follow_up',
       chief_complaint:'ضعف النظر', summary:'تحسن'}]),
     countToday: async()=>3,
     create: async r => { window.__calls.visit={mode:'create',row:r}; return {id:'v9'}; },
@@ -90,7 +104,11 @@ IAPP.svc = {
   },
   appointments: {
     today: async()=>([{id:'a1', patient_id:'p1', display_name:'أحمد محمود',
-      scheduled_date:'2026-08-27', scheduled_time:'10:00:00', status:'WAITING'}]),
+      scheduled_date:TODAY, scheduled_time:'10:00:00', status:'WAITING'},
+      {id:'a2', patient_id:'p2', display_name:'سارة علي',
+      scheduled_date:TODAY, scheduled_time:'10:10:00', status:'IN_CLINIC'}]),
+    complete: (id,v) => IAPP.appointments.complete(id,v),
+    live: async()=>([]),
     actionsFor: (a,r) => IAPP.appointments.actionsFor(a,r),
     statusLabel: s => IAPP.appointments.statusLabel(s),
     waitLabel: a => IAPP.appointments.waitLabel(a),
@@ -103,7 +121,11 @@ IAPP.svc = {
 (async function(){
   let html = fs.readFileSync(F_HTML,'utf8');
   html = html.replace(/<script src="[^"]*"><\/script>/g, '');
-  const models = fs.readFileSync(F_MODELS,'utf8');
+  const models = fs.readFileSync(F_MODELS,'utf8')
+              + '\nwindow.IAPP=window.IAPP||{};window.IAPP.client=function(){return {};};\n'
+              // تعليق داخل appointment-service.js يحتوي على وسم إغلاق سكربت،
+              // وحقنه كما هو يُنهي الوسم مبكراً فينهار كل شيء بلا رسالة مفهومة.
+              + fs.readFileSync(F_APTSVC,'utf8').replace(/<\/script/gi,'<\\/script');
   html = html.replace('<script>\n(function(){',
     '<script>'+models+'<\/script><script>'+stub+'<\/script><script>\n(function(){');
 
@@ -129,7 +151,7 @@ IAPP.svc = {
   // ── 1. الإقلاع ──────────────────────────────────────────
   console.log('\n\x1b[1m1. الإقلاع ولوحة اليوم\x1b[0m');
   ok('يعرض اسم الطبيب', doc.body.textContent.indexOf('د. عبده')>-1);
-  ok('يعرض رقم الإصدار P5.2', doc.body.textContent.indexOf('P5.2')>-1);
+  ok('يعرض رقم الإصدار P8', doc.body.textContent.indexOf('P8')>-1);
   ok('التبويبات الأربعة موجودة', $$('[data-tab]').length===4);
   ok('تبويب المرضى مضاف', !!byText('.tab','المرضى'));
   ok('المؤشر المباشر يعمل', !!$('.dot.on'));
@@ -165,7 +187,9 @@ IAPP.svc = {
   ok('فُتح الملف', doc.body.textContent.indexOf('أحمد محمود')>-1);
   ok('تنبيه الحساسية بارز', $('.alert') && $('.alert').textContent.indexOf('بنسلين')>-1);
   ok('الحالة الأساسية معروضة', doc.body.textContent.indexOf('جلوكوما')>-1);
-  ok('تبويبات الملف الأربعة', $$('[data-pt]').length===4);
+  // خمسة منذ الدفعة 3 (أُضيف تبويب الوصفات) — كان التأكيد متخلّفاً عن الملف
+  ok('تبويبات الملف الخمسة', $$('[data-pt]').length===5,
+     $$('[data-pt]').length+'');
   ok('الزيارات محمَّلة تلقائياً', $('#ptbody').textContent.indexOf('ضعف النظر')>-1);
   ok('نوع الزيارة معرَّب', $('#ptbody').textContent.indexOf('متابعة')>-1);
 
@@ -208,7 +232,7 @@ IAPP.svc = {
   set('e_vas','PL'); set('e_iopd','26'); set('e_iops','15');
   doc.getElementById('e_dx').value='المياه الزرقاء';
   doc.getElementById('e_dxeye').value='OU';
-  doc.getElementById('e_fudate').value='2026-09-15';
+  doc.getElementById('e_fudate').value=DAYS(18);
   doc.getElementById('e_plan').value='متابعة دورية';
 
   // التحديث المباشر أثناء فتح النموذج يجب ألا يمحوه
@@ -227,8 +251,9 @@ IAPP.svc = {
   ok('ضغط العين مرفق', CALLS.exam.iop_right==='26' && CALLS.exam.iop_left==='15');
   ok('التشخيص والعين مرفقان',
      CALLS.exam.diagnosis_text==='المياه الزرقاء' && CALLS.exam.diagnosis_eye==='OU');
-  ok('المتابعة مرفقة', CALLS.exam.follow_up_date==='2026-09-15');
-  ok('الزيارة مرتبطة تلقائياً بزيارة اليوم', CALLS.exam.visit_id==='v1');
+  ok('المتابعة مرفقة', CALLS.exam.follow_up_date===DAYS(18));
+  ok('الزيارة مرتبطة تلقائياً بزيارة اليوم', CALLS.exam.visit_id==='v1',
+     'visit_id='+String(CALLS.exam.visit_id));
   ok('أُغلقت الطبقة بعد الحفظ', !$('.sheet'));
   ok('🔴 تحذير الخدمة عُرض ولم يُبتلع',
      (byText('.toast','لم تُحفظ')||{}).textContent!==undefined);
@@ -325,6 +350,61 @@ IAPP.svc = {
   ok('🔴 فتح الملف من بطاقة الموعد', doc.body.textContent.indexOf('أحمد محمود')>-1
      && !!doc.getElementById('back'));
 
+
+  // ── 11. المرحلة 8: الموعد والزيارة حدث واحد ────────────
+  console.log('\x1b[1m11. المرحلة 8 — وصل الزيارة بالموعد\x1b[0m');
+
+  /** يعود إلى لوحة اليوم من أي مكان — الملف يخفي شريط التبويبات */
+  const goDay = async () => {
+    const b=doc.getElementById('back'); if(b){ click(b); await sleep(100); }
+    const t=byText('.tab','اليوم'); if(t){ click(t); await sleep(150); }
+  };
+
+  // لا قوائم حالات مكرّرة في الواجهة: المعنى من المحرّك وحده
+  ok('المحرّك الحقيقي محمَّل لا نسخة منه', typeof w.IAPP.appointments.isQueued==='function');
+  ok('QUEUED = وصل + ينتظر', w.IAPP.appointments.QUEUED.join()==='ARRIVED,WAITING');
+  ok('IN_CLINIC ليست ضمن قائمة الانتظار', !w.IAPP.appointments.isQueued('IN_CLINIC'));
+  ok('IN_CLINIC ضمن الحاضرين الآن', w.IAPP.appointments.isLive('IN_CLINIC'));
+  ok('رمز التزامن الجديد مترجَم',
+     w.IAPP.appointments.translateError({message:'already_in_state: x'}).code==='already_in_state');
+
+  // مريض داخل العيادة الآن (a2 → p2): الزيارة يجب أن تحمل رقم الموعد وتُنهيه
+  CALLS.visit=null; CALLS.complete=null;
+  await goDay();
+  click(doc.querySelector('[data-open="p2"]'));
+  await sleep(150);
+  click(doc.getElementById('newvisit'));
+  await sleep(120);
+  ok('النموذج يُنبّه أن الموعد سيُنهى', $('.sheet').textContent.indexOf('سيُنهى الموعد')>-1);
+  click(doc.getElementById('save'));
+  await sleep(150);
+  ok('الزيارة تحمل رقم الموعد', CALLS.visit && CALLS.visit.row.appointment_id==='a2',
+     CALLS.visit? String(CALLS.visit.row.appointment_id):'لا زيارة');
+  ok('الموعد أُنهي تلقائياً', CALLS.complete && CALLS.complete.id==='a2');
+  ok('الإنهاء يمرّر رقم الزيارة', CALLS.complete && CALLS.complete.visitId==='v9');
+
+  // مريض بلا موعد داخل العيادة (p1 حالته WAITING): لا إنهاء ولا ربط
+  CALLS.visit=null; CALLS.complete=null;
+  await goDay();
+  click(doc.querySelector('[data-open="p1"]')); await sleep(150);
+  click(doc.getElementById('newvisit')); await sleep(120);
+  // نفحص النموذج المفتوح نفسه لا كامل الصفحة: رسالة سابقة عالقة في مكان آخر
+  // كانت تجعل التأكيد يفشل لسبب لا علاقة له بما نختبره.
+  ok('لا تنبيه لمريض لم يُستدعَ بعد', $('.sheet').textContent.indexOf('سيُنهى الموعد')===-1);
+  click(doc.getElementById('save')); await sleep(150);
+  ok('لا ربط بموعد غير قائم', CALLS.visit && !CALLS.visit.row.appointment_id);
+  ok('لا إنهاء موعد بلا سبب', CALLS.complete===null);
+
+  // فشل الإنهاء لا يُلغي الزيارة ولا يُبتلَع
+  w.__completeFails = true;
+  CALLS.visit=null; CALLS.complete=null;
+  await goDay();
+  click(doc.querySelector('[data-open="p2"]')); await sleep(150);
+  click(doc.getElementById('newvisit')); await sleep(120);
+  click(doc.getElementById('save')); await sleep(200);
+  ok('الزيارة تُحفظ رغم فشل الإنهاء', CALLS.visit && CALLS.visit.mode==='create');
+  ok('الفشل يُقال للطبيب لا يُخفى', doc.body.textContent.indexOf('إنهاء الموعد تعذّر')>-1);
+  w.__completeFails = false;
 
   // ── 10. لا معرّفات مكرّرة داخل النماذج ─────────────────
   console.log('\x1b[1m10. سلامة المعرّفات\x1b[0m');
