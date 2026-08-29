@@ -1,0 +1,2945 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0A0F1E">
+<title>I App — الطبيب</title>
+<style>
+  :root{
+    --bg:#0A0F1E; --surface:#111827; --card:#141E30; --border:#1E2D45;
+    --accent:#00C2FF; --teal:#00E5CC; --gold:#FFB830;
+    --text:#E8F4FF; --muted:#6B8CAE; --danger:#FF4D6D; --success:#00E5B0;
+    --purple:#A78BFA;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:var(--bg);color:var(--text);
+       font-family:'Segoe UI',Tahoma,Arial,sans-serif;line-height:1.6;
+       padding-bottom:env(safe-area-inset-bottom)}
+  .app{max-width:820px;margin:0 auto;padding:12px}
+
+  header{display:flex;align-items:center;gap:10px;padding:10px 4px 14px}
+  .logo{font-size:22px}
+  .title{font-weight:800;font-size:16px}
+  .who{color:var(--muted);font-size:11px}
+  .spacer{flex:1}
+  .live{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted)}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--muted)}
+  .dot.on{background:var(--success);box-shadow:0 0 8px var(--success)}
+
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;
+        padding:14px;margin-bottom:12px}
+  .card h2{font-size:14px;margin:0 0 11px;color:var(--accent)}
+  input,select,textarea{width:100%;background:var(--bg);border:1px solid var(--border);
+        border-radius:10px;padding:10px 12px;color:var(--text);font-size:13.5px;
+        outline:none;box-sizing:border-box;font-family:inherit;direction:rtl}
+  input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+  textarea{resize:vertical;line-height:1.5}
+  label{display:block;color:var(--muted);font-size:11px;margin:0 0 5px 2px}
+  .field{margin-bottom:10px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  button{border:none;border-radius:10px;padding:11px 16px;font-weight:700;font-size:13px;
+         cursor:pointer;font-family:inherit;color:var(--bg);
+         background:linear-gradient(135deg,var(--accent),var(--teal))}
+  button.ghost{background:transparent;border:1px solid var(--border);color:var(--muted)}
+  button.warn{background:transparent;border:1px solid var(--danger);color:var(--danger)}
+  button.sm{padding:7px 12px;font-size:11px;border-radius:8px}
+  button:disabled{opacity:.45}
+  .full{width:100%}
+
+  .tabs{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px}
+  .tab{white-space:nowrap;background:var(--card);border:1px solid var(--border);
+       color:var(--muted);border-radius:10px;padding:9px 14px;font-size:12.5px;
+       font-weight:700;cursor:pointer}
+  .tab.on{background:linear-gradient(135deg,var(--accent),var(--teal));
+          color:var(--bg);border-color:transparent}
+  .tab .n{display:inline-block;background:var(--danger);color:#fff;border-radius:9px;
+          padding:0 6px;font-size:10px;margin-right:5px;font-weight:800}
+  .tabs.sub .tab{padding:7px 12px;font-size:11.5px}
+
+  /* بطاقات الإحصاء */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:9px;margin-bottom:14px}
+  .stat{background:var(--card);border:1px solid var(--border);border-radius:14px;
+        padding:13px 10px;text-align:center;cursor:pointer;transition:border-color .15s}
+  .stat:active{border-color:var(--accent)}
+  .stat .v{font-size:24px;font-weight:800;line-height:1.2}
+  .stat .l{color:var(--muted);font-size:11px;margin-top:3px}
+
+  .apt{background:var(--card);border:1px solid var(--border);border-radius:14px;
+       padding:12px;margin-bottom:10px;position:relative;overflow:hidden}
+  .apt::before{content:'';position:absolute;top:0;right:0;width:4px;height:100%;background:var(--muted)}
+  .apt.s-REQUESTED::before,.apt.s-PENDING::before{background:var(--gold)}
+  .apt.s-CONFIRMED::before{background:var(--accent)}
+  .apt.s-ARRIVED::before,.apt.s-WAITING::before{background:var(--teal)}
+  .apt.s-IN_CLINIC::before{background:var(--success)}
+  .apt.s-COMPLETED::before{background:var(--muted)}
+  .apt.s-CANCELLED::before,.apt.s-NO_SHOW::before{background:var(--danger)}
+  .apt-top{display:flex;gap:11px}
+  .time{text-align:center;min-width:58px}
+  .time b{display:block;color:var(--accent);font-size:15px;font-weight:800;direction:ltr}
+  .time span{display:block;color:var(--muted);font-size:9.5px;direction:ltr}
+  .info{flex:1;min-width:0}
+  .nm{font-weight:700;font-size:14px}
+  .chip{display:inline-block;border-radius:7px;padding:2px 8px;font-size:10px;font-weight:800}
+  .meta{color:var(--muted);font-size:11px;margin-top:2px}
+  .wait{color:var(--gold);font-size:11px;font-weight:700;margin-top:3px}
+  .acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;
+        border-top:1px solid var(--border);padding-top:10px}
+
+  .prow{display:flex;align-items:center;gap:10px;padding:11px 12px;
+        background:var(--card);border:1px solid var(--border);border-radius:12px;
+        margin-bottom:8px;cursor:pointer}
+  .prow.off{opacity:.55}
+  .avatar{width:36px;height:36px;border-radius:50%;flex-shrink:0;
+          background:linear-gradient(135deg,var(--accent),var(--teal));
+          display:flex;align-items:center;justify-content:center;
+          color:var(--bg);font-weight:800;font-size:14px}
+
+  .empty{text-align:center;color:var(--muted);padding:32px 14px;font-size:13px}
+  .empty div:first-child{font-size:34px;margin-bottom:8px;opacity:.5}
+
+  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);
+         background:var(--surface);border:1px solid var(--accent);color:var(--text);
+         border-radius:12px;padding:11px 18px;font-size:12.5px;z-index:120;
+         max-width:90vw;text-align:center;box-shadow:0 8px 28px rgba(0,0,0,.5)}
+  .toast.bad{border-color:var(--danger);color:var(--danger)}
+  .toast.good{border-color:var(--success);color:var(--success)}
+
+  .login{min-height:100vh;display:flex;flex-direction:column;align-items:center;
+         justify-content:center;padding:26px}
+  .login .box{width:100%;max-width:330px}
+  .err{color:var(--danger);font-size:12px;text-align:center;margin-top:9px;min-height:16px}
+
+  /* ── الدفعة 2 ───────────────────────────────────────── */
+
+  /* لا datalist — لا يعمل على أندرويد.
+     البديل: select للاقتراحات يكتب في حقل نصي يبقى حرّاً */
+  .combo{display:grid;grid-template-columns:1fr 88px;gap:6px;align-items:start}
+  .combo select{font-size:11px;padding:10px 4px;color:var(--muted);text-align:center}
+
+  .bar{display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap}
+  .bar input{flex:1}
+  .bar button{flex-shrink:0}
+
+  .rec{background:var(--card);border:1px solid var(--border);border-radius:12px;
+       padding:11px 12px;margin-bottom:9px}
+  .rec .rt{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .rec .rd{color:var(--accent);font-weight:800;font-size:12px}
+  .rec .body{font-size:12.5px;margin-top:6px}
+  .rec .ra{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px;
+           border-top:1px solid var(--border);padding-top:9px}
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:12.5px;margin-top:5px}
+  .kv b{color:var(--muted);font-weight:600;white-space:nowrap}
+  .eyes{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:7px}
+  .eye{background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:7px 9px}
+  .eye .h{color:var(--muted);font-size:10px;font-weight:800;margin-bottom:2px}
+  .eye .v{font-size:13px;font-weight:700;direction:ltr;text-align:right}
+  .hi{color:var(--gold)}
+  .alert{background:rgba(255,77,109,.09);border:1px solid var(--danger);
+         border-radius:10px;padding:9px 11px;font-size:12.5px;margin-bottom:10px}
+  .alert b{color:var(--danger)}
+  .note{color:var(--muted);font-size:11.5px;background:var(--bg);
+        border:1px solid var(--border);border-radius:10px;padding:9px 11px;margin-bottom:11px}
+  .sect{color:var(--accent);font-size:12px;font-weight:800;margin:16px 0 8px;
+        border-top:1px solid var(--border);padding-top:12px}
+  .sect:first-of-type{border-top:none;padding-top:0;margin-top:0}
+
+  /* شبكة القطاعين: الحقل ثم العين اليمنى ثم اليسرى ثم قائمة الاقتراح */
+  .seg{display:grid;grid-template-columns:62px 1fr 1fr 46px;gap:5px;
+       align-items:center;margin-bottom:5px}
+  .seg .l{color:var(--muted);font-size:10.5px;font-weight:700;line-height:1.2}
+  .seg input{font-size:12px;padding:8px 7px}
+  .seg select{font-size:10px;padding:8px 2px;text-align:center;color:var(--muted)}
+  .seg.ou{grid-template-columns:62px 1fr 46px}
+  .seg.ou .os{display:none}
+  .seghd{display:grid;grid-template-columns:62px 1fr 1fr 46px;gap:5px;margin-bottom:4px}
+  .seghd div{color:var(--muted);font-size:9.5px;font-weight:800;text-align:center}
+  .seghd.ou{grid-template-columns:62px 1fr 46px}
+  .seghd.ou .os{display:none}
+  .segbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+  .segbar label{display:flex;align-items:center;gap:4px;color:var(--muted);
+                font-size:11px;font-weight:700;cursor:pointer}
+  .segbar button{font-size:10.5px;padding:6px 9px}
+
+  /* المقارنة: الحالي مقابل السابق */
+  .cmp{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border);
+       border:1px solid var(--border);border-radius:10px;overflow:hidden;font-size:12px}
+  .cmp>div{background:var(--card);padding:7px 8px}
+  .cmp .hd{background:var(--bg);color:var(--muted);font-size:10.5px;font-weight:800;
+           text-align:center}
+  .cmp .lb{color:var(--muted);font-size:11px;font-weight:700}
+  .cmp .ch{color:var(--gold);font-weight:800}
+  .cmp .nw{color:var(--accent);font-weight:800}
+
+  /* النماذج في طبقة مستقلة حتى لا يمحوها التحديث المباشر */
+  .sheet{position:fixed;inset:0;background:rgba(5,8,16,.88);z-index:100;
+         overflow-y:auto;padding:12px;-webkit-overflow-scrolling:touch}
+  .sheet .inner{max-width:820px;margin:0 auto;background:var(--card);
+        border:1px solid var(--border);border-radius:16px;padding:15px}
+  .shead{display:flex;align-items:center;gap:10px;margin-bottom:13px}
+  .stitle{font-weight:800;font-size:15px;color:var(--accent);flex:1}
+  .sfoot{display:flex;gap:8px;margin-top:15px}
+  .sfoot button{flex:1}
+
+  /* ── الدفعة 3: الوصفات ──────────────────────────────── */
+  .item{background:var(--bg);border:1px solid var(--border);border-radius:12px;
+        padding:11px;margin-bottom:10px}
+  .ihead{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+  .ihead span{color:var(--accent);font-size:11.5px;font-weight:800;flex:1}
+  .rxg{display:grid;grid-template-columns:auto 1fr 1fr 1fr;gap:3px 8px;
+       font-size:12.5px;margin-top:7px;text-align:center}
+  .rxg .hd{color:var(--muted);font-size:10.5px;font-weight:800}
+  .rxg .lb{color:var(--muted);font-size:11px;font-weight:800;text-align:right}
+  .rxg .vl{font-weight:700;direction:ltr}
+  .rxi{font-size:12.5px;padding:5px 0;border-bottom:1px dashed var(--border)}
+  .rxi:last-child{border-bottom:none}
+  .rxi b{color:var(--text)}
+  .rxi span{color:var(--muted);font-size:11.5px}
+
+
+  /* ── التصوير التشخيصي (المرحلة 10) ──────────────────── */
+  .igrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:9px}
+  .icard{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+  .icard .ph{position:relative;height:110px;background:var(--bg);
+             display:flex;align-items:center;justify-content:center;cursor:pointer}
+  .icard .ph img{width:100%;height:100%;object-fit:cover;display:block}
+  .icard .ph .ic{font-size:30px;opacity:.45}
+  .icard .ph .tag{position:absolute;top:6px;left:6px}
+  .icard .cb{padding:8px 9px 4px}
+  .icard .mt{font-weight:700;font-size:12px;line-height:1.35}
+  .icard .ms{color:var(--muted);font-size:10.5px;margin-top:3px}
+  .icard .ia{display:flex;gap:5px;flex-wrap:wrap;padding:7px 9px 9px}
+  .icard .ia button{padding:5px 9px;font-size:10.5px;border-radius:8px}
+  .aiwarn{background:#FFB83014;border:1px solid #FFB83044;color:var(--gold);
+    border-radius:10px;padding:8px 10px;font-size:11.5px;margin:8px 0;line-height:1.6}
+  .aierr{background:#FF4D6D14;border:1px solid #FF4D6D44;color:var(--danger);
+    border-radius:10px;padding:10px;font-size:12px;margin:8px 0}
+  .aimeta{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:6px 0}
+  .aif{display:flex;flex-direction:column;gap:4px;margin-top:6px}
+  .aifr{display:grid;grid-template-columns:1fr auto;gap:2px 8px;
+    background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:7px 9px}
+  .aifr .k{font-size:11.5px;color:var(--muted);font-weight:600}
+  .aifr .v{font-size:12.5px;font-weight:700;grid-column:1;order:2}
+  .aifr .s{grid-row:1/3;grid-column:2;align-self:center;text-align:left;white-space:nowrap}
+  .aifr .s .cf{display:block;font-size:9.5px;color:var(--muted);margin-top:3px}
+  .aifr .d{grid-column:1/3;order:3;font-size:11px;color:var(--muted);line-height:1.5}
+  .aiimp{white-space:pre-wrap;font-size:12.5px;line-height:1.7;background:var(--bg);
+    border:1px solid var(--border);border-radius:10px;padding:9px 11px;margin-top:6px}
+  .airev{background:var(--bg);border:1px solid var(--border);
+    border-radius:10px;padding:9px 11px;margin-top:6px}
+  .aiacts{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+  .aiacts button{padding:6px 12px;font-size:11.5px;border-radius:9px}
+  .irep{white-space:pre-wrap;font-size:11.5px;color:var(--text);background:var(--bg);
+        border:1px solid var(--border);border-radius:8px;padding:6px 8px;margin:0 9px 8px;
+        max-height:74px;overflow:hidden}
+  .upst{color:var(--accent);font-size:11.5px;margin-top:8px;min-height:16px}
+
+  /* العارض: طبقة مستقلّة عن الأوراق حتى لا يرسم التحديث الحيّ فوقها */
+  .viewer{position:fixed;inset:0;z-index:600;background:#000000f2;display:flex;flex-direction:column}
+  .viewer .vtop{display:flex;gap:8px;align-items:center;padding:9px 11px;
+                background:#0A0F1Ee6;border-bottom:1px solid var(--border)}
+  .viewer .vtop .vt{font-weight:700;font-size:12.5px;flex:1;min-width:0;
+                    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .viewer .vstage{flex:1;overflow:hidden;position:relative;touch-action:none;
+                  display:flex;align-items:center;justify-content:center}
+  .viewer .vstage img{max-width:100%;max-height:100%;transform-origin:center center;
+                      user-select:none;-webkit-user-select:none;-webkit-user-drag:none;
+                      will-change:transform;cursor:grab}
+  .viewer .vstage img.drag{cursor:grabbing}
+  .viewer .vbot{display:flex;gap:7px;align-items:center;justify-content:center;flex-wrap:wrap;
+                padding:9px;background:#0A0F1Ee6;border-top:1px solid var(--border)}
+  .viewer .vbot button{padding:7px 12px;font-size:12px}
+  .viewer .zl{color:var(--muted);font-size:11px;min-width:46px;text-align:center;direction:ltr}
+  .viewer .vhint{color:var(--muted);font-size:10.5px;text-align:center;padding:0 10px 8px}
+
+  /* ── الطباعة ────────────────────────────────────────── */
+  #print{display:none}
+  @page{size:A4;margin:14mm}
+  @media print{
+    body{background:#fff !important;color:#000 !important}
+    #root,#mroot,#vroot,.toast{display:none !important}
+    #print{display:block}
+    .pr{font-family:'Segoe UI',Tahoma,Arial,sans-serif;color:#000;font-size:13px}
+    .prh{display:flex;align-items:flex-end;gap:12px;
+         border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:12px}
+    .prc{font-size:19px;font-weight:800;flex:1}
+    .prd{font-size:13px}
+    .prm{display:flex;flex-wrap:wrap;gap:6px 20px;font-size:12.5px;margin-bottom:14px}
+    .prt{font-size:15px;font-weight:800;margin:0 0 9px;
+         border-right:4px solid #000;padding-right:8px}
+    .pra{border:1.5px solid #000;padding:7px 10px;margin-bottom:12px;
+         font-size:12.5px;font-weight:700}
+    table.prx{width:100%;border-collapse:collapse;margin-bottom:12px}
+    table.prx th,table.prx td{border:1px solid #000;padding:7px 6px;
+         text-align:center;font-size:13.5px}
+    table.prx th{background:#eee;font-size:12px}
+    table.prx td.e{font-weight:800;background:#f6f6f6}
+    .prv{direction:ltr;font-weight:700}
+    ol.prl{margin:0;padding-right:20px}
+    ol.prl li{margin-bottom:9px;font-size:13.5px}
+    ol.prl small{display:block;font-size:12px;color:#333}
+    .prn{border-top:1px solid #999;padding-top:8px;font-size:12.5px;margin-top:10px}
+    .prs{margin-top:34px;text-align:left;font-size:12.5px}
+    .prf{margin-top:8px;font-size:10.5px;color:#555;text-align:center}
+  }
+</style>
+</head>
+<body>
+<div id="root"><div class="empty" style="padding-top:100px"><div>👁</div>جاري التحميل...</div></div>
+<div id="mroot"></div>
+<div id="vroot"></div>
+<div id="print"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0"></script>
+<script src="./iapp-core.js?v=16"></script>
+<script src="./appointment-service.js?v=16"></script>
+<script src="./js/models.js?v=16"></script>
+<script src="./js/svc-patients.js?v=16"></script>
+<script src="./js/svc-clinical.js?v=16"></script>
+<script src="./js/svc-rx.js?v=16"></script>
+<script src="./js/svc-imaging.js?v=16"></script>
+<script src="./js/svc-ai.js?v=16"></script>
+<script>
+(function(){
+"use strict";
+var APP_VERSION='P11';           // + المساعد الذكي (تحليل + مراجعة + تقرير نهائي)
+var root=document.getElementById('root');
+var mroot=document.getElementById('mroot');
+var vroot=document.getElementById('vroot');
+var proot=document.getElementById('print');
+var M, SVC, A;
+
+var S={ profile:null, doctorId:null,
+        view:'main', tab:'dash', clinic:null, clinics:[],
+        stats:{}, today:[], live:[], due:[],
+        q:'', archived:false, patients:[], pLoaded:false,
+        pt:null, ptTab:'visits', ptData:{}, ptBusy:false,
+        meds:[], medsById:{}, rxItems:[],
+        imgUrls:{}, aiMap:{}, viewer:null, ordItems:[{}],
+        unsub:null, liveOn:false, liveStatus:null, loading:true };
+
+// ── أدوات عرض ────────────────────────────────────────────
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+function toast(m,k,ms){ var d=document.createElement('div');
+  d.className='toast'+(k?' '+k:''); d.textContent=m; document.body.appendChild(d);
+  setTimeout(function(){d.remove();}, ms||3600); }
+function initials(n){ return (String(n||'?').trim()[0]||'?'); }
+function gv(id){ var e=document.getElementById(id); return e?e.value:''; }
+function dash(v){ return (v==null||v==='')?'—':v; }
+
+/** العمر من تاريخ الميلاد إن وُجد، وإلا العمر المسجَّل عند التسجيل */
+function ageOf(p){
+  if(p && p.date_of_birth && M.isDate(p.date_of_birth)){
+    var d=new Date(p.date_of_birth+'T00:00:00'), n=new Date();
+    var a=n.getFullYear()-d.getFullYear(), mo=n.getMonth()-d.getMonth();
+    if(mo<0||(mo===0&&n.getDate()<d.getDate())) a--;
+    return a>=0?a:null;
+  }
+  return (p && p.age_at_registration!=null) ? p.age_at_registration : null;
+}
+
+// ── مولّدات حقول ─────────────────────────────────────────
+function fld(l,inner){ return '<div class="field"><label>'+esc(l)+'</label>'+inner+'</div>'; }
+function I(id,v,type,extra){
+  return '<input id="'+id+'"'+(type?' type="'+type+'"':'')+(extra?' '+extra:'')
+    +' value="'+esc(v==null?'':v)+'">';
+}
+function T(id,v,rows){
+  return '<textarea id="'+id+'" rows="'+(rows||2)+'">'+esc(v==null?'':v)+'</textarea>';
+}
+function pairsObj(o){ return Object.keys(o).map(function(k){ return [k,o[k]]; }); }
+function pairsArr(a){ return a.map(function(x){ return [x,x]; }); }
+function SEL(id,pairs,v,ph){
+  return '<select id="'+id+'"><option value="">'+esc(ph||'—')+'</option>'
+   + pairs.map(function(o){
+       return '<option value="'+esc(o[0])+'"'
+         +(String(v==null?'':v)===String(o[0])?' selected':'')+'>'+esc(o[1])+'</option>';
+     }).join('') + '</select>';
+}
+/**
+ * حقل حرّ + قائمة اقتراحات.
+ * لا datalist لأنه لا يعمل على أندرويد؛ هنا select حقيقي يكتب في الحقل،
+ * والحقل يبقى نصّاً حرّاً فلا تُحاصَر صياغة الطبيب في قائمة مغلقة.
+ * mode='add' يضيف للموجود (نتائج متعددة) · 'set' يستبدل (قيمة واحدة)
+ */
+function combo(l,id,v,list,mode,rows){
+  return '<div class="field"><label>'+esc(l)+'</label><div class="combo">'
+   +(rows?T(id,v,rows):I(id,v))
+   +'<select class="pick" data-pick="'+id+'" data-mode="'+(mode||'set')+'">'
+   +'<option value="">قائمة ▾</option>'
+   + list.map(function(x){ return '<option value="'+esc(x)+'">'+esc(x)+'</option>'; }).join('')
+   +'</select></div></div>';
+}
+function wireCombos(scope){
+  (scope||document).querySelectorAll('[data-pick]').forEach(function(sl){
+    sl.onchange=function(){
+      var val=sl.value; if(!val) return;
+      var t=document.getElementById(sl.getAttribute('data-pick'));
+      if(t){
+        if(sl.getAttribute('data-mode')==='add' && t.value.trim())
+          t.value = t.value.replace(/[،\s]+$/,'') + '، ' + val;
+        else t.value = val;
+      }
+      sl.value='';
+    };
+  });
+}
+
+// ── الطبقة المنبثقة ──────────────────────────────────────
+function openSheet(title, body, onMount){
+  mroot.innerHTML='<div class="sheet"><div class="inner">'
+    +'<div class="shead"><div class="stitle">'+esc(title)+'</div>'
+    +'<button class="ghost sm" id="mclose">إغلاق</button></div>'
+    + body + '</div></div>';
+  document.getElementById('mclose').onclick=closeSheet;
+  wireCombos(mroot);
+  document.body.style.overflow='hidden';
+  if(onMount) onMount();
+}
+function closeSheet(){ mroot.innerHTML=''; document.body.style.overflow=''; }
+function sheetOpen(){ return mroot.innerHTML.length>0 || vroot.innerHTML.length>0; }
+function busy(id,on,txt){
+  var b=document.getElementById(id); if(!b) return;
+  b.disabled=!!on; if(txt!=null) b.textContent=on?'... جارٍ الحفظ':txt;
+}
+
+// ════════════════════════════════════════════════════════
+// المصادقة
+// ════════════════════════════════════════════════════════
+function renderLogin(err,busyFlag){
+  root.innerHTML='<div class="login"><div class="box">'
+   +'<div style="text-align:center;margin-bottom:26px">'
+   +'<div style="font-size:46px">👁</div>'
+   +'<div style="color:var(--accent);font-weight:800;font-size:21px">I App</div>'
+   +'<div style="color:var(--muted);font-size:12px">تطبيق الطبيب · '
+   +'<b style="color:var(--gold)">'+APP_VERSION+'</b></div></div>'
+   +'<div class="field"><input id="em" type="email" dir="ltr" placeholder="البريد الإلكتروني" autocomplete="username"></div>'
+   +'<div class="field"><input id="pw" type="password" placeholder="كلمة المرور" autocomplete="current-password"></div>'
+   +'<button class="full" id="go"'+(busyFlag?' disabled':'')+'>'+(busyFlag?'...':'دخول')+'</button>'
+   +'<div class="err">'+esc(err||'')+'</div></div></div>';
+
+  var go=function(){
+    var em=document.getElementById('em').value, pw=document.getElementById('pw').value;
+    if(!em||!pw){ renderLogin('أدخل البريد وكلمة المرور'); return; }
+    renderLogin('',true);
+    IAPP.signIn(em,pw).then(function(r){
+      if(!r.ok){ renderLogin(r.error); return; }
+      // الدور يُقرأ من الخادم؛ هذا الفحص للتجربة فقط، و RLS هو الأمان
+      if(['doctor','admin'].indexOf(r.profile.role)===-1){
+        IAPP.signOut();
+        renderLogin('هذا الحساب ('+(IAPP.ROLE_AR[r.profile.role]||r.profile.role)+') غير مصرّح له');
+        return;
+      }
+      IAPP._profile=r.profile; S.profile=r.profile; boot();
+    }).catch(function(e){ renderLogin(e.message); });
+  };
+  document.getElementById('go').onclick=go;
+  document.getElementById('pw').onkeydown=function(e){ if(e.key==='Enter') go(); };
+}
+
+// ════════════════════════════════════════════════════════
+// التحميل
+// ════════════════════════════════════════════════════════
+async function boot(){
+  try{
+    S.clinics = await SVC.refs.clinics();
+    if(!S.clinic && S.clinics.length) S.clinic = S.clinics[0].id;
+  }catch(e){
+    root.innerHTML='<div class="empty"><div>⚠️</div>تعذّر تحميل العيادات<br>'
+      +'<span style="font-size:11px">'+esc(e.message)+'</span></div>';
+    return;
+  }
+  await resolveDoctor();
+  subscribe();
+  await load();
+}
+
+/**
+ * ربط الحساب بصف الطبيب في جدول doctors.
+ * أسماء أعمدة الربط تختلف بين النسخ، لذا نجرّب المعروف منها ثم البريد.
+ * إن لم نجد صفاً، يبقى doctor_id فارغاً — والخدمات تقبل null،
+ * فلا يتعطل الحفظ بسبب ربط ناقص.
+ */
+async function resolveDoctor(){
+  try{
+    var docs = await SVC.refs.doctors();
+    var uid = S.profile.userId || S.profile.user_id || S.profile.id || null;
+    var mail = (S.profile.email||'').toLowerCase();
+    var hit = docs.filter(function(d){
+      if(uid && (d.user_id===uid || d.auth_user_id===uid || d.profile_id===uid || d.id===uid)) return true;
+      if(mail && String(d.email||'').toLowerCase()===mail) return true;
+      return false;
+    })[0];
+    S.doctorId = hit ? hit.id : null;
+    if(!S.doctorId && docs.length===1) S.doctorId = docs[0].id;
+  }catch(e){ S.doctorId=null; }
+}
+
+function subscribe(){
+  if(S.unsub) try{S.unsub();}catch(e){}
+  // تحديث فوري — لا استقصاء
+  S.unsub = SVC.appointments.subscribe({
+    clinicId:S.clinic, key:'doc5',
+    onChange:function(){ load(true); },
+    onReady:function(st){ S.liveOn=(st==='SUBSCRIBED'); S.liveStatus=st; autoRender(); }
+  });
+}
+
+/** التحديث المباشر لا يعيد الرسم فوق نموذج مفتوح أو قائمة بحث قيد الكتابة */
+function autoRender(){
+  if(sheetOpen()) return;
+  if(S.view==='main' && S.tab==='patients') return;
+  render();
+}
+
+async function load(quiet){
+  try{
+    var res = await Promise.all([
+      SVC.appointments.today(S.clinic),
+      SVC.followups.due(M.today(), S.clinic),
+      SVC.visits.countToday(S.clinic),
+      SVC.patients.count()
+    ]);
+    S.today = res[0]||[];
+    S.due   = res[1]||[];
+    S.live  = S.today.filter(function(a){ return A.isLive(a.status); });
+    S.stats = {
+      appts: S.today.length,
+      // المرحلة 8: لا قوائم حالات مكتوبة هنا — المعنى من المحرّك وحده
+      waiting: S.today.filter(function(a){ return A.isQueued(a.status); }).length,
+      inClinic: S.today.filter(function(a){ return A.isInClinic(a.status); }).length,
+      completed: res[2]||0,
+      due: S.due.length,
+      patients: res[3]||0
+    };
+  }catch(e){ if(!quiet) toast(M.dbError(e),'bad'); }
+  S.loading=false;
+  if(quiet) autoRender(); else render();
+}
+
+// ════════════════════════════════════════════════════════
+// العرض — الهيكل
+// ════════════════════════════════════════════════════════
+function headerHTML(){
+  return '<header><span class="logo">👁</span>'
+   +'<div><div class="title">'+esc(S.profile.fullName||'الطبيب')+'</div>'
+   +'<div class="who">'+esc(S.profile.email)+' · <b style="color:var(--gold)">'
+   +APP_VERSION+'</b></div></div>'
+   +'<div class="spacer"></div>'
+   +'<div class="live"><span class="dot'+(S.liveOn?' on':'')+'"></span>'
+   +(S.liveOn?'مباشر':(S.liveStatus&&S.liveStatus!=='SUBSCRIBED'?'غير متصل':'...'))+'</div>'
+   +'<button class="ghost sm" id="out">خروج</button></header>';
+}
+
+function render(){
+  if(!S.profile) return;
+  var h='<div class="app">'+headerHTML();
+
+  if(S.view==='profile'){
+    h += profileHTML();
+    h += '</div>'; root.innerHTML=h; wire();
+    if(S.pt) paintPt();
+    return;
+  }
+
+  h+='<div class="tabs">'
+    +'<div class="tab'+(S.tab==='dash'?' on':'')+'" data-tab="dash">اليوم</div>'
+    +'<div class="tab'+(S.tab==='wait'?' on':'')+'" data-tab="wait">غرفة الانتظار'
+      +(S.live.length?'<span class="n">'+S.live.length+'</span>':'')+'</div>'
+    +'<div class="tab'+(S.tab==='due'?' on':'')+'" data-tab="due">المتابعات'
+      +(S.due.length?'<span class="n">'+S.due.length+'</span>':'')+'</div>'
+    +'<div class="tab'+(S.tab==='patients'?' on':'')+'" data-tab="patients">المرضى</div>'
+   +'</div>';
+
+  if(S.clinics.length>1 && S.tab!=='patients'){
+    h+='<div class="field"><select id="cl">'+S.clinics.map(function(c){
+      return '<option value="'+c.id+'"'+(c.id===S.clinic?' selected':'')+'>'+esc(c.name_ar)+'</option>';
+    }).join('')+'</select></div>';
+  }
+
+  if(S.tab==='dash'){
+    var st=S.stats;
+    h+='<div class="stats">'
+      +stat(st.appts,'مواعيد اليوم','var(--accent)','dash')
+      +stat(st.waiting,'في الانتظار','var(--teal)','wait')
+      +stat(st.inClinic,'داخل العيادة','var(--success)','wait')
+      +stat(st.completed,'زيارات مكتملة','var(--muted)','')
+      +stat(st.due,'متابعات مستحقة','var(--gold)','due')
+      +stat(st.patients,'إجمالي المرضى','var(--purple)','patients')
+      +'</div>'
+      +'<div style="color:var(--muted);font-size:12px;margin-bottom:9px">'
+      +esc(M.fmtDay(M.today()))+'</div>';
+    h+= S.today.length ? S.today.map(function(a){return aptCard(a,true);}).join('')
+      : '<div class="empty"><div>📅</div>لا مواعيد اليوم</div>';
+  }
+
+  if(S.tab==='wait'){
+    h+='<div style="color:var(--muted);font-size:12px;margin-bottom:10px">'
+      +'المرضى الموجودون في العيادة الآن</div>';
+    h+= S.live.length ? S.live.map(function(a){return aptCard(a,true);}).join('')
+      : '<div class="empty"><div>🪑</div>غرفة الانتظار فارغة</div>';
+  }
+
+  if(S.tab==='due'){
+    h+='<div style="color:var(--muted);font-size:12px;margin-bottom:10px">'
+      +'متابعات حان موعدها أو تأخّرت</div>';
+    h+= S.due.length ? S.due.map(function(f){
+      var late = f.due_date < M.today();
+      return '<div class="prow" data-open="'+esc(f.patient_id)+'">'
+        +'<div class="avatar">'+esc(initials(f._name))+'</div>'
+        +'<div style="flex:1;min-width:0">'
+        +'<div style="font-weight:700;font-size:13.5px">'+esc(f._name||'—')+'</div>'
+        +'<div class="meta">'+esc(f._code||'')
+        +' · <span style="color:'+(late?'var(--danger)':'var(--gold)')+'">'
+        +esc(f.due_date)+(late?' (متأخر)':'')+'</span>'
+        +(f.reason?' · '+esc(f.reason):'')+'</div></div>'
+        +(f._phone?'<button class="ghost sm" data-wa="'+esc(M.waPhone(f._phone))+'">💬</button>':'')
+        +'<button class="ghost sm" data-fudone="'+f.id+'">تم</button>'
+        +'</div>';
+    }).join('') : '<div class="empty"><div>🔔</div>لا متابعات مستحقة</div>';
+  }
+
+  if(S.tab==='patients'){
+    h+='<div class="bar">'
+      +'<input id="q" placeholder="بحث بالاسم أو الهاتف أو الكود" value="'+esc(S.q)+'">'
+      +'<button class="sm" id="newp">＋ مريض</button></div>'
+      +'<div class="bar" style="margin-bottom:12px">'
+      +'<button class="ghost sm" id="arch">'
+      +(S.archived?'✓ يشمل المؤرشفين':'إظهار المؤرشفين')+'</button>'
+      +'<div class="spacer"></div></div>'
+      +'<div id="plist"></div>';
+  }
+
+  h+='</div>'; root.innerHTML=h; wire();
+
+  if(S.tab==='dash'||S.tab==='wait') paintActions();
+  if(S.tab==='patients'){
+    if(!S.pLoaded){ loadPatients(); } else { paintPatients(); }
+  }
+}
+
+function stat(v,l,color,tab){
+  return '<div class="stat"'+(tab?' data-go="'+tab+'"':'')+'>'
+    +'<div class="v" style="color:'+color+'">'+(v==null?'—':v)+'</div>'
+    +'<div class="l">'+l+'</div></div>';
+}
+
+/** الأزرار تُشتق من جدول الانتقالات في الخادم — لا قواعد مكررة هنا */
+function paintActions(){
+  var rows = S.tab==='wait' ? S.live : S.today;
+  rows.forEach(function(a){
+    var box=document.querySelector('[data-acts="'+a.id+'"]');
+    if(!box) return;
+    SVC.appointments.actionsFor(a,S.profile.role).then(function(acts){
+      if(!acts.length){ box.remove(); return; }
+      acts.forEach(function(ac){
+        var b=document.createElement('button');
+        b.className='sm'+(ac.to==='CANCELLED'||ac.to==='NO_SHOW'?' ghost'
+                        :(ac.to==='IN_CLINIC'||ac.to==='COMPLETED'?'':' ghost'));
+        b.textContent=ac.label;
+        b.onclick=function(e){ e.stopPropagation(); runAction(a,ac); };
+        box.appendChild(b);
+      });
+    }).catch(function(){ box.remove(); });
+  });
+}
+
+async function runAction(a,ac){
+  if(ac.requiresReason){
+    var r=prompt('السبب (إلزامي):','');
+    if(r===null) return;
+    if(r.trim().length<3){ toast('اكتب سبباً واضحاً','bad'); return; }
+    try{ await ac.run(r.trim()); toast('تم','good'); load(); }
+    catch(e){ toast(M.dbError(e),'bad'); }
+    return;
+  }
+  try{ await ac.run(); toast('تم: '+ac.label,'good'); load(); }
+  catch(e){ toast(M.dbError(e),'bad'); }
+}
+
+function aptCard(a, withActions){
+  var lab=A.statusLabel(a.status), wait=A.waitLabel(a);
+  return '<div class="apt s-'+a.status+'"'
+   +(a.patient_id?' data-open="'+esc(a.patient_id)+'"':'')+'>'
+   +'<div class="apt-top">'
+     +'<div class="time"><b>'+esc((a.scheduled_time||'').slice(0,5))+'</b>'
+     +'<span>'+esc(a.scheduled_date||'')+'</span></div>'
+     +'<div class="info">'
+       +'<div class="nm">'+esc(a.display_name||'—')
+       +(a.patient_id?'':' <span style="color:var(--gold);font-size:10px">(زائر)</span>')+'</div>'
+       +'<div class="meta"><span class="chip" style="background:'+lab.color+'22;color:'+lab.color+'">'
+       +lab.icon+' '+lab.ar+'</span>'
+       +(a.appointment_type?' · '+esc(a.appointment_type):'')
+       +(a.room?' · غرفة '+esc(a.room):'')+'</div>'
+       +(wait&&A.isQueued(a.status)
+          ?'<div class="wait">⏱ ينتظر منذ '+esc(wait)+'</div>':'')
+     +'</div></div>'
+   +(withActions?'<div class="acts" data-acts="'+a.id+'"></div>':'')
+   +'</div>';
+}
+
+// ════════════════════════════════════════════════════════
+// المرضى — القائمة والبحث
+// ════════════════════════════════════════════════════════
+var qTimer=null;
+async function loadPatients(){
+  var box=document.getElementById('plist');
+  if(box) box.innerHTML='<div class="empty">جارٍ التحميل...</div>';
+  try{
+    S.patients = await SVC.patients.list({
+      search:S.q, includeArchived:S.archived, limit:60
+    });
+    S.pLoaded=true;
+  }catch(e){ toast(M.dbError(e),'bad'); S.patients=[]; }
+  paintPatients();
+}
+
+function paintPatients(){
+  var box=document.getElementById('plist'); if(!box) return;
+  if(!S.patients.length){
+    box.innerHTML='<div class="empty"><div>👤</div>'
+      +(S.q?'لا نتائج للبحث':'لا مرضى بعد')+'</div>';
+    return;
+  }
+  box.innerHTML = S.patients.map(function(p){
+    var age=ageOf(p);
+    var bits=[];
+    if(p.patient_code) bits.push(esc(p.patient_code));
+    if(age!=null) bits.push(age+' سنة');
+    if(p.gender && M.GENDER[p.gender] && p.gender!=='unknown') bits.push(M.GENDER[p.gender]);
+    if(p.phone) bits.push('<span style="direction:ltr;display:inline-block">'+esc(p.phone)+'</span>');
+    return '<div class="prow'+(p.is_active===false?' off':'')+'" data-open="'+esc(p.id)+'">'
+      +'<div class="avatar">'+esc(initials(p.full_name))+'</div>'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="font-weight:700;font-size:13.5px">'+esc(p.full_name||'—')
+      +(p.is_active===false?' <span class="chip" style="background:#6B8CAE22;color:var(--muted)">مؤرشف</span>':'')
+      +'</div><div class="meta">'+bits.join(' · ')+'</div></div>'
+      +(p.phone?'<button class="ghost sm" data-wa="'+esc(M.waPhone(p.phone))+'">💬</button>':'')
+      +'</div>';
+  }).join('');
+  wireRows(box);
+}
+
+function wireRows(scope){
+  (scope||document).querySelectorAll('[data-open]').forEach(function(el){
+    el.onclick=function(){ openPatient(el.getAttribute('data-open')); };
+  });
+  (scope||document).querySelectorAll('[data-wa]').forEach(function(el){
+    el.onclick=function(e){ e.stopPropagation();
+      window.open('https://wa.me/'+el.getAttribute('data-wa'),'_blank'); };
+  });
+}
+
+// ════════════════════════════════════════════════════════
+// ملف المريض
+// ════════════════════════════════════════════════════════
+async function openPatient(id){
+  if(!id) return;
+  S.view='profile'; S.pt=null; S.ptTab='visits'; S.ptData={};
+  render();
+  try{
+    S.pt = await SVC.patients.get(id);
+    render();
+    loadPtTab();
+  }catch(e){
+    toast(M.dbError(e),'bad'); S.view='main'; render();
+  }
+}
+
+function backToList(){
+  S.view='main'; S.pt=null; S.ptData={};
+  if(S.tab!=='patients' && S.tab!=='due') S.tab='patients';
+  render();
+}
+
+function profileHTML(){
+  if(!S.pt) return '<div class="empty">جارٍ فتح الملف...</div>';
+  var p=S.pt, age=ageOf(p);
+  var h='<div class="bar"><button class="ghost sm" id="back">← رجوع</button>'
+    +'<div class="spacer"></div>'
+    +(p.phone?'<button class="ghost sm" data-wa="'+esc(M.waPhone(p.phone))+'">💬 واتساب</button>':'')
+    +'<button class="ghost sm" id="pedit">تعديل</button></div>';
+
+  h+='<div class="card"><div style="display:flex;gap:11px;align-items:center">'
+    +'<div class="avatar" style="width:46px;height:46px;font-size:18px">'
+    +esc(initials(p.full_name))+'</div>'
+    +'<div style="flex:1;min-width:0">'
+    +'<div style="font-weight:800;font-size:16px">'+esc(p.full_name||'—')
+    +(p.is_active===false?' <span class="chip" style="background:#6B8CAE22;color:var(--muted)">مؤرشف</span>':'')
+    +'</div><div class="meta">'+esc(p.patient_code||'')
+    +(age!=null?' · '+age+' سنة':'')
+    +(p.gender&&M.GENDER[p.gender]&&p.gender!=='unknown'?' · '+M.GENDER[p.gender]:'')
+    +'</div></div></div>';
+
+  var kv='';
+  function add(k,v){ if(v!=null&&v!=='') kv+='<b>'+esc(k)+'</b><span>'+esc(v)+'</span>'; }
+  add('الهاتف',p.phone); add('هاتف بديل',p.alt_phone);
+  add('المدينة',p.city); add('المهنة',p.occupation);
+  add('فصيلة الدم',p.blood_type);
+  add('حالة الفرز',p.triage_status);
+  if(p.emergency_contact_name||p.emergency_contact_phone)
+    add('عند الطوارئ',[p.emergency_contact_name,p.emergency_contact_phone].filter(Boolean).join(' — '));
+  if(kv) h+='<div class="card"><div class="kv">'+kv+'</div></div>';
+
+  // الحساسيات أولاً وبلون التحذير — لأن تفويتها هو الخطأ الأخطر
+  if(p.allergies) h+='<div class="alert"><b>⚠ حساسية:</b> '+esc(p.allergies)+'</div>';
+  var cl='';
+  if(p.primary_condition) cl+='<b>الحالة</b><span>'+esc(p.primary_condition)+'</span>';
+  if(p.medical_history)   cl+='<b>التاريخ المرضي</b><span>'+esc(p.medical_history)+'</span>';
+  if(p.notes)             cl+='<b>ملاحظات</b><span>'+esc(p.notes)+'</span>';
+  if(cl) h+='<div class="card"><div class="kv">'+cl+'</div></div>';
+
+  h+='<div class="bar">'
+    +'<button class="sm" id="newvisit">＋ زيارة</button>'
+    +'<button class="sm" id="newexam">＋ فحص</button>'
+    +'<button class="sm" id="newglass">＋ نظارة</button>'
+    +'<button class="sm" id="newdrug">＋ دواء</button>'
+    +'<button class="ghost sm" id="cmpbtn">⇄ مقارنة</button>'
+    +'<div class="spacer"></div>'
+    +'<button class="'+(p.is_active===false?'ghost':'warn')+' sm" id="parch">'
+    +(p.is_active===false?'استعادة':'أرشفة')+'</button></div>';
+
+  h+='<div class="tabs sub">'
+    +'<div class="tab'+(S.ptTab==='visits'?' on':'')+'" data-pt="visits">الزيارات</div>'
+    +'<div class="tab'+(S.ptTab==='exams'?' on':'')+'" data-pt="exams">الفحوصات</div>'
+    +'<div class="tab'+(S.ptTab==='img'?' on':'')+'" data-pt="img">الصور</div>'
+    +'<div class="tab'+(S.ptTab==='rx'?' on':'')+'" data-pt="rx">الوصفات</div>'
+    +'<div class="tab'+(S.ptTab==='surg'?' on':'')+'" data-pt="surg">العمليات</div>'
+    +'<div class="tab'+(S.ptTab==='dx'?' on':'')+'" data-pt="dx">التشخيصات</div>'
+    +'<div class="tab'+(S.ptTab==='fu'?' on':'')+'" data-pt="fu">المتابعات</div>'
+   +'</div><div id="ptbody"></div>';
+  return h;
+}
+
+async function loadPtTab(force){
+  var t=S.ptTab, id=S.pt&&S.pt.id; if(!id) return;
+  if(force) delete S.ptData[t];
+  if(S.ptData[t]){ paintPt(); return; }
+  S.ptBusy=true; paintPt();
+  try{
+    if(t==='visits') S.ptData.visits = await SVC.visits.listByPatient(id,30);
+    if(t==='exams')  S.ptData.exams  = await SVC.examinations.listByPatient(id,30);
+    if(t==='rx'){
+      S.ptData.rx = await SVC.prescriptions.listByPatient(id,30);
+      await loadMeds();
+    }
+    if(t==='img'){
+      S.ptData.img = await SVC.imaging.listByPatient(id,{limit:60});
+      S.imgUrls = await SVC.imaging.thumbUrls(S.ptData.img);
+      S.ptData.orders = await SVC.imaging.orders.listByPatient(id,25);
+      // شارات التحليل: نداء واحد للشبكة كلها، وفشلها لا يمنع عرض الصور
+      try{
+        S.aiMap = await SVC.ai.latestFor((S.ptData.img||[]).map(function(v){return v.id;}));
+      }catch(e){ S.aiMap = {}; }
+    }
+    if(t==='surg')   S.ptData.surg   = await SVC.surgeries.listByPatient(id,40);
+    if(t==='dx')     S.ptData.dx     = await SVC.diagnoses.listByPatient(id,40);
+    if(t==='fu')     S.ptData.fu     = await SVC.followups.listByPatient(id);
+  }catch(e){ toast(M.dbError(e),'bad'); S.ptData[t]=[]; }
+  S.ptBusy=false; paintPt();
+}
+
+function paintPt(){
+  var box=document.getElementById('ptbody'); if(!box) return;
+  if(S.ptBusy){ box.innerHTML='<div class="empty">جارٍ التحميل...</div>'; return; }
+  var t=S.ptTab, d=S.ptData[t]||[];
+  if(t==='visits') box.innerHTML = d.length ? d.map(visitRec).join('')
+    : '<div class="empty"><div>🗓</div>لا زيارات مسجَّلة</div>';
+  if(t==='exams') box.innerHTML = d.length ? d.map(examRec).join('')
+    : '<div class="empty"><div>🔬</div>لا فحوصات مسجَّلة</div>';
+  if(t==='rx') box.innerHTML = d.length ? d.map(rxRec).join('')
+    : '<div class="empty"><div>📝</div>لا وصفات مسجَّلة</div>';
+  if(t==='img'){
+    var ords = S.ptData.orders||[];
+    box.innerHTML =
+      '<div class="bar"><button class="sm" id="neword">＋ طلب أشعة</button>'
+    + '<button class="ghost sm" id="newimg">＋ رفع دراسة</button>'
+    + '<div class="spacer"></div>'
+    + (d.length?'<span class="meta">'+d.length+' دراسة</span>':'')+'</div>'
+    + (ords.length ? '<div class="sect">طلبات الأشعة</div>'
+                   + ords.map(ordRec).join('') : '')
+    + (d.length ? '<div class="sect">الدراسات</div>'
+                + '<div class="igrid">'+d.map(imgCard).join('')+'</div>'
+       : (ords.length?'':'<div class="empty"><div>🖼</div>لا صور ولا طلبات</div>'));
+  }
+  if(t==='surg') box.innerHTML =
+      '<div class="bar"><button class="sm" id="newsurg">＋ عملية</button></div>'
+    + (d.length ? d.map(surgRec).join('')
+       : '<div class="empty"><div>🩺</div>لا عمليات مسجَّلة</div>');
+  if(t==='dx') box.innerHTML =
+      '<div class="bar"><button class="sm" id="newdx">＋ تشخيص</button></div>'
+    + (d.length ? d.map(dxRec).join('') : '<div class="empty"><div>📋</div>لا تشخيصات</div>');
+  if(t==='fu') box.innerHTML =
+      '<div class="bar"><button class="sm" id="newfu">＋ متابعة</button></div>'
+    + (d.length ? d.map(fuRec).join('') : '<div class="empty"><div>🔔</div>لا متابعات</div>');
+  wirePt(box);
+}
+
+function visitRec(v){
+  return '<div class="rec"><div class="rt">'
+    +'<span class="rd">'+esc(M.fmtDay(v.visit_date))+'</span>'
+    +'<span class="chip" style="background:#00C2FF22;color:var(--accent)">'
+    +esc(M.VISIT_TYPE[v.visit_type]||v.visit_type||'زيارة')+'</span></div>'
+    +(v.chief_complaint?'<div class="body">'+esc(v.chief_complaint)+'</div>':'')
+    +(v.summary?'<div class="body" style="color:var(--muted)">'+esc(v.summary)+'</div>':'')
+    +(v.notes?'<div class="body" style="color:var(--muted)">'+esc(v.notes)+'</div>':'')
+    +'<div class="ra"><button class="ghost sm" data-evisit="'+v.id+'">تعديل</button></div></div>';
+}
+
+function iopTxt(m){
+  if(!m||m.value_mmhg==null) return '—';
+  var n=Number(m.value_mmhg);
+  return '<span'+(n>21?' class="hi"':'')+'>'+n+' mmHg'+(n>21?' ⚠':'')+'</span>';
+}
+
+function examRec(e){
+  var h='<div class="rec"><div class="rt">'
+    +'<span class="rd">'+esc(M.fmtDay(e.exam_date))+'</span>'
+    +(e.chief_complaint?'<span style="font-size:12px">'+esc(e.chief_complaint)+'</span>':'')
+    +'</div>';
+  // حدة الإبصار نص لا رقم — CF و HM و PL قيم سريرية صحيحة
+  // ثلاث قراءات لا واحدة: بلا تصحيح · بأفضل تصحيح · بالثقب
+  function vaBlock(u,b,ph,iop,ttl){
+    var x='<div class="eye"><div class="h">'+ttl+'</div>'
+     +'<div class="v">'+esc(dash(u))+'</div>';
+    if(b) x+='<div class="v" style="font-size:11.5px">BCVA '+esc(b)+'</div>';
+    if(ph) x+='<div class="v" style="font-size:11.5px">PH '+esc(ph)+'</div>';
+    return x+'<div class="v" style="font-size:11.5px;color:var(--muted)">'
+     +iopTxt(iop)+'</div></div>';
+  }
+  h+='<div class="eyes">'
+    +vaBlock(e.va_right,e.va_right_corrected,e.va_right_ph,e._iop_od,'اليمنى OD')
+    +vaBlock(e.va_left,e.va_left_corrected,e.va_left_ph,e._iop_os,'اليسرى OS')
+    +'</div>';
+  var kv='';
+  function add(k,v){ if(v) kv+='<b>'+esc(k)+'</b><span>'+esc(v)+'</span>'; }
+  add('القطاع الأمامي',e.anterior_segment);
+  add('القطاع الخلفي',e.posterior_segment);
+  add('رؤية الألوان',e.color_vision);
+  add('التباين',e.contrast_sensitivity);
+  add('اختبار التغطية',e.cover_test);
+  add('الخطة',e.treatment_plan);
+  add('ملاحظات',e.notes);
+  if(kv) h+='<div class="kv">'+kv+'</div>';
+  h+='<div class="ra"><button class="ghost sm" data-eexam="'+e.id+'">تعديل</button>'
+    +'<button class="ghost sm" data-cmp="'+e.id+'">⇄ قارن بالسابقة</button></div>';
+  return h+'</div>';
+}
+
+// ── الوصفات ──────────────────────────────────────────────
+async function loadMeds(){
+  if(S.meds.length) return S.meds;
+  try{ S.meds = await SVC.prescriptions.medications(); }
+  catch(e){ S.meds=[]; }
+  S.medsById={};
+  S.meds.forEach(function(m){ S.medsById[m.id]=m; });
+  return S.meds;
+}
+function medName(it){
+  if(it.free_text) return it.free_text;
+  var m=S.medsById[it.medication_id];
+  return m ? (m.name + (m.strength?' '+m.strength:'')) : 'دواء';
+}
+/** الديوبتر يُعرض بإشارته دائماً — +1.00 و-1.00 عدستان متضادتان */
+function refCell(v){ return M.diopter(v); }
+function axCell(v){ return (v==null||v==='')?'—':(v+'°'); }
+
+function rxRec(r){
+  var h='<div class="rec"><div class="rt">'
+    +'<span class="rd">'+esc(M.fmtDay(r.prescribed_on))+'</span>'
+    +'<span class="chip" style="background:'+(r.is_glasses?'#00E5CC22;color:var(--teal)'
+        :'#A78BFA22;color:var(--purple)')+'">'
+    +(r.is_glasses?'👓 نظارة':'💊 دواء')+'</span>'
+    +(!r.is_glasses&&r.eye?'<span class="chip" style="background:#00C2FF22;color:var(--accent)">'
+      +esc(M.EYE[r.eye]||r.eye)+'</span>':'')+'</div>';
+
+  if(r.is_glasses){
+    var od=r._od||{}, os=r._os||{};
+    h+='<div class="rxg">'
+      +'<div class="hd"></div><div class="hd">SPH</div><div class="hd">CYL</div><div class="hd">AXIS</div>'
+      +'<div class="lb">اليمنى OD</div>'
+      +'<div class="vl">'+esc(refCell(od.sphere))+'</div>'
+      +'<div class="vl">'+esc(refCell(od.cylinder))+'</div>'
+      +'<div class="vl">'+esc(axCell(od.axis))+'</div>'
+      +'<div class="lb">اليسرى OS</div>'
+      +'<div class="vl">'+esc(refCell(os.sphere))+'</div>'
+      +'<div class="vl">'+esc(refCell(os.cylinder))+'</div>'
+      +'<div class="vl">'+esc(axCell(os.axis))+'</div>'
+      +'</div>';
+    var add=(od.add_power!=null?od.add_power:os.add_power);
+    var ipd=(od.ipd_mm!=null?od.ipd_mm:os.ipd_mm);
+    var ex=[];
+    if(add!=null&&add!=='') ex.push('ADD '+M.diopter(add));
+    if(ipd!=null&&ipd!=='') ex.push('IPD '+ipd+' mm');
+    if(ex.length) h+='<div class="meta" style="direction:ltr;text-align:right;margin-top:5px">'
+      +esc(ex.join('  ·  '))+'</div>';
+  } else {
+    h+='<div style="margin-top:6px">'+(r._items||[]).map(function(it){
+      var sub=[it.dose,it.frequency,it.duration].filter(Boolean).join(' · ');
+      return '<div class="rxi"><b>'+esc(medName(it))+'</b>'
+        +(it.eye?' <span class="chip" style="background:#00C2FF22;color:var(--accent)">'
+          +esc(M.EYE[it.eye]||it.eye)+'</span>':'')
+        +(sub?'<span> — '+esc(sub)+'</span>':'')+'</div>';
+    }).join('')+'</div>';
+  }
+  if(r.notes) h+='<div class="body" style="color:var(--muted)">'+esc(r.notes)+'</div>';
+  h+='<div class="ra"><button class="sm" data-rxprint="'+r.id+'">🖨 طباعة</button>'
+    +'<button class="warn sm" data-rxdel="'+r.id+'">حذف</button></div>';
+  return h+'</div>';
+}
+
+// ── نموذج النظارة ────────────────────────────────────────
+function glassesForm(){
+  if(!S.pt) return;
+  var lastExam=(S.ptData.exams||[])[0];
+  var num='type="number" step="0.25" inputmode="decimal" dir="ltr"';
+  var ax ='type="number" step="1" min="0" max="180" inputmode="numeric" dir="ltr"';
+  var h='<div class="sect">التاريخ</div>'
+   +fld('تاريخ الوصفة',I('g_date',M.today(),'date'))
+   +'<div class="sect">العين اليمنى OD</div>'
+   +'<div class="row">'+fld('كروي SPH',I('g_od_sph','',null,num))
+   +fld('أسطواني CYL',I('g_od_cyl','',null,num))+'</div>'
+   +fld('المحور AXIS',I('g_od_ax','',null,ax))
+   +'<div class="sect">العين اليسرى OS</div>'
+   +'<div class="row">'+fld('كروي SPH',I('g_os_sph','',null,num))
+   +fld('أسطواني CYL',I('g_os_cyl','',null,num))+'</div>'
+   +fld('المحور AXIS',I('g_os_ax','',null,ax))
+   +'<div class="sect">مشترك</div>'
+   +'<div class="row">'+fld('قوة القراءة ADD',I('g_add','',null,num))
+   +fld('المسافة بين الحدقتين IPD',I('g_ipd','','number','step="0.5" inputmode="decimal" dir="ltr"'))+'</div>'
+   +fld('ملاحظات',T('g_notes','',2))
+   +'<div class="note">الأسطواني يقبل الموجب والسالب — كلاهما صياغة سريرية صحيحة. '
+   +'القيم بخطوات ربع ديوبتر.</div>'
+   +'<div class="sfoot"><button class="ghost" id="mcancel">إلغاء</button>'
+   +'<button id="save">حفظ</button></div>';
+
+  openSheet('وصفة نظارة — '+(S.pt.full_name||''), h, function(){
+    document.getElementById('mcancel').onclick=closeSheet;
+    document.getElementById('save').onclick=async function(){
+      var data={
+        patient_id:S.pt.id, doctor_id:S.doctorId||null, clinic_id:S.clinic||null,
+        examination_id:(lastExam?lastExam.id:null),
+        prescribed_on:gv('g_date'),
+        od_sphere:gv('g_od_sph'), od_cylinder:gv('g_od_cyl'), od_axis:gv('g_od_ax'),
+        os_sphere:gv('g_os_sph'), os_cylinder:gv('g_os_cyl'), os_axis:gv('g_os_ax'),
+        add_power:gv('g_add'), ipd_mm:gv('g_ipd'), notes:gv('g_notes')
+      };
+      busy('save',true,'حفظ');
+      try{
+        await SVC.prescriptions.createGlasses(data);
+        closeSheet(); toast('تم حفظ وصفة النظارة','good');
+        S.ptTab='rx'; render(); loadPtTab(true);
+      }catch(e){ busy('save',false,'حفظ'); toast(e.message,'bad',7000); }
+    };
+  });
+}
+
+// ── نموذج الأدوية ────────────────────────────────────────
+function itemRow(i,it){
+  it=it||{};
+  return '<div class="item"><div class="ihead"><span>دواء '+(i+1)+'</span>'
+   +(i>0?'<button class="warn sm" data-rmi="'+i+'">حذف</button>':'')+'</div>'
+   +combo('الاسم','it'+i+'_name',it.name,S.meds.map(function(m){return m.name;}),'set')
+   +'<div class="row">'+combo('الجرعة','it'+i+'_dose',it.dose,M.DOSE,'set')
+   +combo('التكرار','it'+i+'_freq',it.frequency,M.FREQ,'set')+'</div>'
+   +'<div class="row">'+combo('المدة','it'+i+'_dur',it.duration,M.DURATION,'set')
+   +fld('العين',SEL('it'+i+'_eye',pairsObj(M.EYE),it.eye,'—'))+'</div></div>';
+}
+function readItems(){
+  return S.rxItems.map(function(_,i){
+    return { name:gv('it'+i+'_name'), dose:gv('it'+i+'_dose'),
+             frequency:gv('it'+i+'_freq'), duration:gv('it'+i+'_dur'),
+             eye:gv('it'+i+'_eye')||null };
+  });
+}
+function paintItems(keep){
+  // نقرأ ما كُتب قبل إعادة الرسم حتى لا يضيع إدخال الطبيب
+  if(keep) S.rxItems = readItems();
+  var box=document.getElementById('items'); if(!box) return;
+  box.innerHTML = S.rxItems.map(function(it,i){ return itemRow(i,it); }).join('');
+  wireCombos(box);
+  box.querySelectorAll('[data-rmi]').forEach(function(el){
+    el.onclick=function(){
+      S.rxItems = readItems();
+      S.rxItems.splice(parseInt(el.getAttribute('data-rmi'),10),1);
+      paintItems(false);
+    };
+  });
+}
+async function drugsForm(){
+  if(!S.pt) return;
+  await loadMeds();
+  S.rxItems=[{}];
+  var h='<div class="row">'+fld('تاريخ الوصفة',I('d2_date',M.today(),'date'))
+   +fld('العين (عام)',SEL('d2_eye',pairsObj(M.EYE),'','—'))+'</div>'
+   +(S.pt.allergies?'<div class="alert"><b>⚠ حساسية:</b> '+esc(S.pt.allergies)+'</div>':'')
+   +'<div id="items"></div>'
+   +'<button class="ghost full" id="additem">＋ دواء آخر</button>'
+   +fld('ملاحظات',T('d2_notes','',2))
+   +'<div class="note">الدواء غير الموجود في الكتالوج يُحفظ بنصّه كما كُتب — '
+   +'لا مطابقة تقريبية في وصفة طبية.</div>'
+   +'<div class="sfoot"><button class="ghost" id="mcancel">إلغاء</button>'
+   +'<button id="save">حفظ</button></div>';
+
+  openSheet('وصفة دواء — '+(S.pt.full_name||''), h, function(){
+    paintItems(false);
+    document.getElementById('mcancel').onclick=closeSheet;
+    document.getElementById('additem').onclick=function(){
+      S.rxItems=readItems(); S.rxItems.push({}); paintItems(false);
+    };
+    document.getElementById('save').onclick=async function(){
+      var items=readItems().filter(function(l){ return M.str(l.name); });
+      if(!items.length){ toast('أدخل دواءً واحداً على الأقل','bad'); return; }
+      busy('save',true,'حفظ');
+      try{
+        await SVC.prescriptions.createDrugs({
+          patient_id:S.pt.id, doctor_id:S.doctorId||null, clinic_id:S.clinic||null,
+          prescribed_on:gv('d2_date'), eye:gv('d2_eye')||null,
+          notes:gv('d2_notes'), items:items
+        });
+        closeSheet(); toast('تم حفظ الوصفة','good');
+        S.ptTab='rx'; render(); loadPtTab(true);
+      }catch(e){ busy('save',false,'حفظ'); toast(e.message,'bad',7000); }
+    };
+  });
+}
+
+// ── الطباعة ──────────────────────────────────────────────
+function clinicName(id){
+  var c=S.clinics.filter(function(x){ return x.id===(id||S.clinic); })[0];
+  return c?c.name_ar:'';
+}
+function rxPrintHTML(r){
+  var p=S.pt||{}, age=ageOf(p);
+  var h='<div class="pr"><div class="prh">'
+   +'<div class="prc">'+esc(clinicName(r.clinic_id))+'</div>'
+   +'<div class="prd">'+esc(S.profile.fullName||'')+'</div></div>'
+   +'<div class="prm">'
+   +'<span><b>المريض:</b> '+esc(p.full_name||'—')+'</span>'
+   +(p.patient_code?'<span><b>الكود:</b> '+esc(p.patient_code)+'</span>':'')
+   +(age!=null?'<span><b>العمر:</b> '+age+' سنة</span>':'')
+   +'<span><b>التاريخ:</b> '+esc(r.prescribed_on||M.today())+'</span>'
+   +'</div>';
+
+  if(r.is_glasses){
+    var od=r._od||{}, os=r._os||{};
+    h+='<div class="prt">وصفة نظارة طبية</div>'
+     +'<table class="prx"><tr><th></th><th>SPH</th><th>CYL</th><th>AXIS</th></tr>'
+     +'<tr><td class="e">اليمنى OD</td>'
+     +'<td class="prv">'+esc(refCell(od.sphere))+'</td>'
+     +'<td class="prv">'+esc(refCell(od.cylinder))+'</td>'
+     +'<td class="prv">'+esc(axCell(od.axis))+'</td></tr>'
+     +'<tr><td class="e">اليسرى OS</td>'
+     +'<td class="prv">'+esc(refCell(os.sphere))+'</td>'
+     +'<td class="prv">'+esc(refCell(os.cylinder))+'</td>'
+     +'<td class="prv">'+esc(axCell(os.axis))+'</td></tr></table>';
+    var add=(od.add_power!=null?od.add_power:os.add_power);
+    var ipd=(od.ipd_mm!=null?od.ipd_mm:os.ipd_mm);
+    var ex=[];
+    if(add!=null&&add!=='') ex.push('ADD: '+M.diopter(add));
+    if(ipd!=null&&ipd!=='') ex.push('IPD: '+ipd+' mm');
+    if(ex.length) h+='<div class="prm"><span class="prv">'+esc(ex.join('   '))+'</span></div>';
+  } else {
+    h+='<div class="prt">وصفة علاجية</div>';
+    // الحساسية تُطبع مع الدواء — تفويتها هو الخطأ الأخطر
+    if(p.allergies) h+='<div class="pra">⚠ حساسية: '+esc(p.allergies)+'</div>';
+    h+='<ol class="prl">'+(r._items||[]).map(function(it){
+      var sub=[it.dose,it.frequency,it.duration,
+               it.eye?(M.EYE[it.eye]||it.eye):null].filter(Boolean).join(' — ');
+      return '<li>'+esc(medName(it))+(sub?'<small>'+esc(sub)+'</small>':'')+'</li>';
+    }).join('')+'</ol>';
+  }
+  if(r.notes) h+='<div class="prn"><b>ملاحظات:</b> '+esc(r.notes)+'</div>';
+  h+='<div class="prs">التوقيع: ..............................</div>'
+   +'<div class="prf">'+esc(clinicName(r.clinic_id))+' — طُبع في '+esc(M.today())+'</div>'
+   +'</div>';
+  return h;
+}
+function printRx(r){
+  if(!r) return;
+  proot.innerHTML = rxPrintHTML(r);
+  window.print();
+}
+
+function dxRec(d){
+  var col = d.status==='resolved'?'var(--muted)':(d.status==='chronic'?'var(--gold)':'var(--success)');
+  return '<div class="rec"><div class="rt">'
+    +'<span style="font-weight:700;font-size:13.5px">'+esc(d.diagnosis_text)+'</span>'
+    +'<span class="chip" style="background:'+col+'22;color:'+col+'">'
+    +esc(M.DX_STATUS[d.status]||d.status||'')+'</span>'
+    +(d.eye?'<span class="chip" style="background:#A78BFA22;color:var(--purple)">'
+      +esc(M.EYE[d.eye]||d.eye)+'</span>':'')
+    +(d.is_primary?'<span class="chip" style="background:#00C2FF22;color:var(--accent)">أساسي</span>':'')
+    +'</div><div class="meta">'+esc(d.diagnosed_on||'')
+    +(d.icd10_code?' · '+esc(d.icd10_code):'')+'</div>'
+    +'<div class="ra">'
+    +(d.status!=='resolved'?'<button class="ghost sm" data-dxres="'+d.id+'">شُفي</button>':'')
+    +'<button class="warn sm" data-dxdel="'+d.id+'">حذف</button></div></div>';
+}
+
+function fuRec(f){
+  var late = f.status==='pending' && f.due_date < M.today();
+  var col = f.status==='completed'?'var(--success)':(late?'var(--danger)':'var(--gold)');
+  return '<div class="rec"><div class="rt">'
+    +'<span class="rd" style="color:'+col+'">'+esc(f.due_date)+(late?' (متأخر)':'')+'</span>'
+    +'<span class="chip" style="background:'+col+'22;color:'+col+'">'
+    +esc(M.FU_STATUS[f.status]||f.status||'')+'</span></div>'
+    +(f.reason?'<div class="body">'+esc(f.reason)+'</div>':'')
+    +(f.notes?'<div class="body" style="color:var(--muted)">'+esc(f.notes)+'</div>':'')
+    +(f.status==='pending'
+      ?'<div class="ra"><button class="ghost sm" data-fudone2="'+f.id+'">تم</button></div>':'')
+    +'</div>';
+}
+
+function wirePt(box){
+  var b;
+  b=box.querySelector('#newdx'); if(b) b.onclick=dxForm;
+  b=box.querySelector('#newfu'); if(b) b.onclick=fuForm;
+  box.querySelectorAll('[data-evisit]').forEach(function(el){
+    el.onclick=function(){
+      var id=el.getAttribute('data-evisit');
+      visitForm((S.ptData.visits||[]).filter(function(v){return v.id===id;})[0]);
+    };
+  });
+  b=box.querySelector('#newimg'); if(b) b.onclick=function(){ imgForm(); };
+  b=box.querySelector('#neword'); if(b) b.onclick=function(){ orderForm(null); };
+  box.querySelectorAll('[data-oprint]').forEach(function(el){
+    el.onclick=function(){ printOrder(ordById(el.getAttribute('data-oprint'))); };
+  });
+  box.querySelectorAll('[data-oedit]').forEach(function(el){
+    el.onclick=function(){ orderForm(ordById(el.getAttribute('data-oedit'))); };
+  });
+  box.querySelectorAll('[data-odone]').forEach(function(el){
+    el.onclick=function(){ completeOrder(ordById(el.getAttribute('data-odone'))); };
+  });
+  box.querySelectorAll('[data-ocancel]').forEach(function(el){
+    el.onclick=function(){ cancelOrder(ordById(el.getAttribute('data-ocancel'))); };
+  });
+  box.querySelectorAll('[data-odel]').forEach(function(el){
+    el.onclick=function(){ deleteOrder(ordById(el.getAttribute('data-odel'))); };
+  });
+  box.querySelectorAll('[data-view]').forEach(function(el){
+    el.onclick=function(e){ e.stopPropagation(); openViewer(imgById(el.getAttribute('data-view'))); };
+  });
+  box.querySelectorAll('[data-irep]').forEach(function(el){
+    el.onclick=function(){ imgReportForm(imgById(el.getAttribute('data-irep'))); };
+  });
+  box.querySelectorAll('[data-ai]').forEach(function(el){
+    el.onclick=function(){ aiPanel(imgById(el.getAttribute('data-ai'))); };
+  });
+  box.querySelectorAll('[data-iedit]').forEach(function(el){
+    el.onclick=function(){ imgEditForm(imgById(el.getAttribute('data-iedit'))); };
+  });
+  box.querySelectorAll('[data-idl]').forEach(function(el){
+    el.onclick=function(){ downloadStudy(imgById(el.getAttribute('data-idl'))); };
+  });
+  box.querySelectorAll('[data-idel]').forEach(function(el){
+    el.onclick=function(){ deleteStudy(imgById(el.getAttribute('data-idel'))); };
+  });
+  box.querySelectorAll('[data-ipurge]').forEach(function(el){
+    el.onclick=function(){ purgeStudy(imgById(el.getAttribute('data-ipurge'))); };
+  });
+  b=box.querySelector('#newsurg'); if(b) b.onclick=function(){ surgForm(null); };
+  box.querySelectorAll('[data-cmp]').forEach(function(el){
+    el.onclick=function(){ cmpView(el.getAttribute('data-cmp')); };
+  });
+  box.querySelectorAll('[data-esurg]').forEach(function(el){
+    el.onclick=function(){
+      var id=el.getAttribute('data-esurg');
+      surgForm((S.ptData.surg||[]).filter(function(v){return v.id===id;})[0]);
+    };
+  });
+  box.querySelectorAll('[data-dsurg]').forEach(function(el){
+    el.onclick=async function(){
+      if(!confirm('حذف هذه العملية من السجل؟')) return;
+      try{ await SVC.surgeries.remove(el.getAttribute('data-dsurg'));
+        toast('تم الحذف','good'); loadPtTab(true); }
+      catch(e){ toast(M.dbError(e),'bad'); }
+    };
+  });
+  box.querySelectorAll('[data-eexam]').forEach(function(el){
+    el.onclick=function(){
+      var id=el.getAttribute('data-eexam');
+      examForm((S.ptData.exams||[]).filter(function(v){return v.id===id;})[0]);
+    };
+  });
+  box.querySelectorAll('[data-rxprint]').forEach(function(el){
+    el.onclick=function(){
+      var id=el.getAttribute('data-rxprint');
+      printRx((S.ptData.rx||[]).filter(function(x){return x.id===id;})[0]);
+    };
+  });
+  box.querySelectorAll('[data-rxdel]').forEach(function(el){
+    el.onclick=async function(){
+      if(!confirm('حذف هذه الوصفة؟')) return;
+      try{ await SVC.prescriptions.remove(el.getAttribute('data-rxdel'));
+        toast('تم الحذف','good'); loadPtTab(true); }
+      catch(e){ toast(M.dbError(e),'bad'); }
+    };
+  });
+  box.querySelectorAll('[data-dxres]').forEach(function(el){
+    el.onclick=async function(){
+      try{ await SVC.diagnoses.setStatus(el.getAttribute('data-dxres'),'resolved');
+        toast('تم التحديث','good'); loadPtTab(true); }
+      catch(e){ toast(M.dbError(e),'bad'); }
+    };
+  });
+  box.querySelectorAll('[data-dxdel]').forEach(function(el){
+    el.onclick=async function(){
+      if(!confirm('حذف هذا التشخيص؟')) return;
+      try{ await SVC.diagnoses.remove(el.getAttribute('data-dxdel'));
+        toast('تم الحذف','good'); loadPtTab(true); }
+      catch(e){ toast(M.dbError(e),'bad'); }
+    };
+  });
+  box.querySelectorAll('[data-fudone2]').forEach(function(el){
+    el.onclick=async function(){
+      try{ await SVC.followups.setStatus(el.getAttribute('data-fudone2'),'completed');
+        toast('تمت المتابعة','good'); loadPtTab(true); load(true); }
+      catch(e){ toast(M.dbError(e),'bad'); }
+    };
+  });
+}
+
+// ════════════════════════════════════════════════════════
+// نموذج المريض
+// ════════════════════════════════════════════════════════
+async function patientForm(p){
+  p = p || {};
+  var isNew = !p.id;
+  var code = p.patient_code || '';
+  if(isNew){ try{ code = await SVC.patients.nextCode(); }catch(e){} }
+
+  var h='<div class="sect">بيانات أساسية</div>'
+   +'<div class="row">'+fld('كود المريض',I('f_code',code))
+   +fld('الاسم الكامل',I('f_name',p.full_name))+'</div>'
+   +'<div class="row">'+fld('العمر',I('f_age',p.age_at_registration,'number','inputmode="numeric"'))
+   +fld('تاريخ الميلاد',I('f_dob',p.date_of_birth,'date'))+'</div>'
+   +'<div class="row">'+fld('النوع',SEL('f_gender',pairsObj(M.GENDER),p.gender||'unknown','—'))
+   +fld('فصيلة الدم',SEL('f_blood',pairsArr(M.BLOOD),p.blood_type,'—'))+'</div>'
+
+   +'<div class="sect">التواصل</div>'
+   +'<div class="row">'+fld('الهاتف',I('f_phone',p.phone,'tel','dir="ltr" inputmode="tel"'))
+   +fld('هاتف بديل',I('f_alt',p.alt_phone,'tel','dir="ltr" inputmode="tel"'))+'</div>'
+   +'<div class="row">'+fld('البريد الإلكتروني',I('f_email',p.email,'email','dir="ltr"'))
+   +fld('المدينة',I('f_city',p.city))+'</div>'
+   +fld('العنوان',I('f_addr',p.address))
+   +'<div class="row">'+fld('المهنة',I('f_occ',p.occupation))
+   +(isNew?fld('الرقم القومي',I('f_nid',p.national_id,'text','dir="ltr" inputmode="numeric"'))
+          :fld('حالة الفرز',SEL('f_triage',pairsArr(M.TRIAGE),p.triage_status,'—')))+'</div>'
+   +(isNew?fld('حالة الفرز',SEL('f_triage',pairsArr(M.TRIAGE),p.triage_status,'—')):'')
+   +'<div class="row">'+fld('اسم شخص للطوارئ',I('f_ecn',p.emergency_contact_name))
+   +fld('هاتف الطوارئ',I('f_ecp',p.emergency_contact_phone,'tel','dir="ltr" inputmode="tel"'))+'</div>'
+
+   +'<div class="sect">سريري</div>'
+   +fld('الحساسية',T('f_allergy',p.allergies,2))
+   +fld('التاريخ المرضي',T('f_hist',p.medical_history,2))
+   +fld('الحالة الأساسية',I('f_cond',p.primary_condition))
+   +fld('ملاحظات',T('f_notes',p.notes,2))
+   +(isNew&&S.clinics.length>1
+      ? fld('العيادة الأساسية',SEL('f_clinic',S.clinics.map(function(c){return [c.id,c.name_ar];}),
+            p.primary_clinic_id||S.clinic,'—'))
+      : '')
+   +'<div class="sfoot"><button class="ghost" id="mcancel">إلغاء</button>'
+   +'<button id="save">حفظ</button></div>';
+
+  openSheet(isNew?'مريض جديد':'تعديل بيانات المريض', h, function(){
+    document.getElementById('mcancel').onclick=closeSheet;
+    document.getElementById('save').onclick=async function(){
+      var row={
+        patient_code:gv('f_code'), full_name:gv('f_name'),
+        age_at_registration:gv('f_age'), date_of_birth:gv('f_dob'),
+        gender:gv('f_gender')||'unknown', blood_type:gv('f_blood'),
+        phone:gv('f_phone'), alt_phone:gv('f_alt'), email:gv('f_email'),
+        city:gv('f_city'), address:gv('f_addr'), occupation:gv('f_occ'),
+        triage_status:gv('f_triage'),
+        emergency_contact_name:gv('f_ecn'), emergency_contact_phone:gv('f_ecp'),
+        allergies:gv('f_allergy'), medical_history:gv('f_hist'),
+        primary_condition:gv('f_cond'), notes:gv('f_notes')
+      };
+      if(isNew){
+        row.national_id=gv('f_nid');
+        row.primary_clinic_id = gv('f_clinic') || S.clinic || null;
+      }
+      // الهاتف يُوحَّد قبل الحفظ حتى لا يتكرر المريض بصيغتي +20 و0
+      row.phone=M.normPhone(row.phone); row.alt_phone=M.normPhone(row.alt_phone);
+      row.emergency_contact_phone=M.normPhone(row.emergency_contact_phone);
+
+      var chk=M.validatePatient(row);
+      if(!chk.ok){ toast(chk.errors[0],'bad'); return; }
+      busy('save',true,'حفظ');
+      try{
+        var saved = isNew ? await SVC.patients.create(row)
+                          : await SVC.patients.update(p.id,row);
+        closeSheet(); toast(isNew?'تم إضافة المريض':'تم حفظ التعديل','good');
+        S.pLoaded=false;
+        if(S.view==='profile'){ S.pt=saved; render(); paintPt(); }
+        else if(isNew){ openPatient(saved.id); }
+        else loadPatients();
+        load(true);
+      }catch(e){ busy('save',false,'حفظ'); toast(e.message,'bad',6000); }
+    };
+  });
+}
+
+// ════════════════════════════════════════════════════════
+// نموذج الزيارة
+// ════════════════════════════════════════════════════════
+/**
+ * المرحلة 8 — الوصلة المفقودة.
+ * كان الطبيب يفتح الكشف فيصير الموعد IN_CLINIC، ثم يحفظ الزيارة، ثم يعود
+ * ليضغط «إنهاء» على بطاقة الموعد يدوياً. خطوتان منفصلتان لحدث واحد، وإن نسي
+ * الثانية بقي المريض «داخل العيادة» على شاشة السكرتارية إلى آخر اليوم.
+ * الآن: الزيارة تحمل رقم الموعد، وحفظها يُنهيه.
+ */
+function activeAptFor(patientId){
+  var l=(S.today||[]).filter(function(a){
+    return a.patient_id===patientId && A.isInClinic(a.status); });
+  return l.length ? l[0] : null;
+}
+
+function visitForm(v){
+  if(!S.pt) return;
+  v = v || {};
+  var isNew=!v.id;
+  var apt = isNew ? activeAptFor(S.pt.id) : null;
+  var h=(apt?'<div class="note">🔗 مرتبطة بموعد '
+            +esc((apt.scheduled_time||'').slice(0,5))
+            +' — سيُنهى الموعد تلقائياً عند الحفظ</div>':'')
+   +fld('تاريخ الزيارة',I('v_date',v.visit_date||M.today(),'date'))
+   +fld('نوع الزيارة',SEL('v_type',pairsObj(M.VISIT_TYPE),v.visit_type||'routine','—'))
+   +combo('الشكوى الرئيسية','v_cc',v.chief_complaint,M.COMPLAINTS,'add')
+   +fld('الخلاصة',T('v_sum',v.summary,2))
+   +fld('ملاحظات',T('v_notes',v.notes,2))
+   +'<div class="sfoot"><button class="ghost" id="mcancel">إلغاء</button>'
+   +'<button id="save">حفظ</button></div>';
+
+  openSheet(isNew?'زيارة جديدة — '+(S.pt.full_name||''):'تعديل الزيارة', h, function(){
+    document.getElementById('mcancel').onclick=closeSheet;
+    document.getElementById('save').onclick=async function(){
+      var row={
+        patient_id:S.pt.id, clinic_id:S.clinic||null, doctor_id:S.doctorId||null,
+        appointment_id: apt ? apt.id : null,
+        visit_date:gv('v_date'), visit_type:gv('v_type')||'routine',
+        chief_complaint:gv('v_cc'), summary:gv('v_sum'), notes:gv('v_notes')
+      };
+      var chk=M.validateVisit(row);
+      if(!chk.ok){ toast(chk.errors[0],'bad'); return; }
+      busy('save',true,'حفظ');
+      try{
+        var saved;
+        if(isNew) saved = await SVC.visits.create(row);
+        else      saved = await SVC.visits.update(v.id,row);
+
+        // إنهاء الموعد لا يُبطل الزيارة إن فشل: الزيارة محفوظة فعلاً، والفشل
+        // يُقال صراحةً بدل أن يُبتلع. الأسباب الواردة: شخص آخر أنهاه قبلك،
+        // أو انقطاع الشبكة — وكلاهما يُعالَج بتحديث الشاشة لا بإعادة الحفظ.
+        var extra='';
+        if(apt && saved && saved.id){
+          try{ await SVC.appointments.complete(apt.id, saved.id); extra=' وأُنهي الموعد'; }
+          catch(err){ toast('حُفظت الزيارة، لكن إنهاء الموعد تعذّر: '+M.dbError(err),'bad',7000); }
+        }
+        closeSheet(); if(!apt || extra) toast('تم حفظ الزيارة'+extra,'good');
+        S.ptTab='visits'; loadPtTab(true); load(true);
+      }catch(e){ busy('save',false,'حفظ'); toast(e.message,'bad',6000); }
+    };
+  });
+}
+
+// ════════════════════════════════════════════════════════
+// نموذج الفحص
+// ════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
+// المرحلة 9 — السجل السريري المبنيّ
+// ════════════════════════════════════════════════════════
+
+/** قيمة حقل لعين ما. OU تُغني عن OD وOS معاً، فنقرأها كبديل. */
+function fval(map,eye,key){
+  if(!map) return '';
+  var v = (map[eye]||{})[key];
+  if(v==null || v==='') v = (map.OU||{})[key];
+  return v==null?'':v;
+}
+
+/** صف حقل واحد: الاسم، اليمنى، اليسرى، ثم قائمة اقتراح تكتب في اليمنى. */
+function segRow(sec,key,label,list,vOD,vOS){
+  return '<div class="seg" data-sec="'+sec+'">'
+   +'<div class="l">'+esc(label)+'</div>'
+   +'<div>'+I('f_'+key+'_od',vOD,'text','placeholder="OD"')+'</div>'
+   +'<div class="os">'+I('f_'+key+'_os',vOS,'text','placeholder="OS"')+'</div>'
+   +'<select class="pick" data-pick="f_'+key+'_od" data-mode="set">'
+   +'<option value="">▾</option>'
+   + list.map(function(x){ return '<option value="'+esc(x)+'">'+esc(x)+'</option>'; }).join('')
+   +'</select></div>';
+}
+
+function segBlock(sec,title,fields,map){
+  var ou = fields.some(function(f){
+    var v=(map.OU||{})[f[0]]; return v!=null && v!==''; });
+  var h = '<div class="sect">'+esc(title)+'</div>'
+   +'<div class="segbar">'
+   +'<label><input type="checkbox" id="'+sec+'_ou"'+(ou?' checked':'')+'> كلتا العينين OU</label>'
+   +'<button type="button" class="ghost sm" id="'+sec+'_copy">نسخ اليمنى ← اليسرى</button>'
+   +'<button type="button" class="ghost sm" id="'+sec+'_norm">الكل طبيعي</button>'
+   +'</div>'
+   +'<div class="seghd'+(ou?' ou':'')+'" id="'+sec+'_hd"><div></div>'
+   +'<div id="'+sec+'_odlbl">'+(ou?'OU كلتاهما':'OD اليمنى')+'</div>'
+   +'<div class="os">OS اليسرى</div><div></div></div>';
+  fields.forEach(function(f){
+    h += segRow(sec,f[0],f[1],f[2],fval(map,'OD',f[0]),fval(map,'OS',f[0]));
+  });
+  return h;
+}
+
+function wireSeg(sec,fields){
+  var cb=document.getElementById(sec+'_ou'); if(!cb) return;
+  function apply(){
+    var on=cb.checked;
+    document.querySelectorAll('[data-sec="'+sec+'"]').forEach(function(el){
+      if(on) el.classList.add('ou'); else el.classList.remove('ou');
+    });
+    var hd=document.getElementById(sec+'_hd');
+    if(hd){ if(on) hd.classList.add('ou'); else hd.classList.remove('ou'); }
+    var lb=document.getElementById(sec+'_odlbl');
+    if(lb) lb.textContent = on?'OU كلتاهما':'OD اليمنى';
+  }
+  cb.onchange=apply; apply();
+  var c=document.getElementById(sec+'_copy');
+  if(c) c.onclick=function(){
+    fields.forEach(function(f){
+      var a=document.getElementById('f_'+f[0]+'_od');
+      var b=document.getElementById('f_'+f[0]+'_os');
+      if(a&&b) b.value=a.value;
+    });
+  };
+  var n=document.getElementById(sec+'_norm');
+  if(n) n.onclick=function(){
+    fields.forEach(function(f){
+      var a=document.getElementById('f_'+f[0]+'_od');
+      var b=document.getElementById('f_'+f[0]+'_os');
+      if(a&&!a.value) a.value=M.FIELD_NORMAL[f[0]];
+      if(b&&!b.value&&!cb.checked) b.value=M.FIELD_NORMAL[f[0]];
+    });
+  };
+}
+
+/** يقرأ الشبكة كاملة. الحقل الفارغ لا يُرسل — الفراغ ليس موجوداً سلبياً. */
+function readSeg(){
+  var out=[];
+  M.ANT_FIELDS.concat(M.POST_FIELDS).forEach(function(f){
+    var key=f[0], sec=(M.FIELD_SECTION[key]==='anterior')?'ant':'post';
+    var cb=document.getElementById(sec+'_ou');
+    var od=gv('f_'+key+'_od');
+    if(cb && cb.checked){ if(od) out.push({eye:'OU',field:key,value:od}); return; }
+    var os=gv('f_'+key+'_os');
+    if(od) out.push({eye:'OD',field:key,value:od});
+    if(os) out.push({eye:'OS',field:key,value:os});
+  });
+  return out;
+}
+
+/** صفّان لكل قياس ثنائي العين — يُستعمل لحدة الإبصار والانكسار */
+function eyeRow(label,idOD,idOS,vOD,vOS,list,type,extra){
+  var h='<div class="seg"><div class="l">'+esc(label)+'</div>'
+   +'<div>'+I(idOD,vOD,type||'text',extra||'placeholder="OD"')+'</div>'
+   +'<div class="os">'+I(idOS,vOS,type||'text',extra||'placeholder="OS"')+'</div>';
+  if(list){
+    h+='<select class="pick" data-pick="'+idOD+'" data-mode="set"><option value="">▾</option>'
+      + list.map(function(x){ return '<option value="'+esc(x)+'">'+esc(x)+'</option>'; }).join('')
+      +'</select>';
+  } else h+='<div></div>';
+  return h+'</div>';
+}
+
+async function examForm(e){
+  if(!S.pt) return;
+  e = e || {};
+  var isNew=!e.id;
+
+  // التعديل يحتاج الصورة الكاملة: القائمة لا تحمل الموجودات ولا الانكسار
+  if(!isNew && !e._map){
+    try{ e = await SVC.examinations.getFull(e.id); }
+    catch(err){ toast(M.dbError(err),'bad'); return; }
+  }
+  var map = e._map || {OD:{},OS:{},OU:{}};
+
+  if(isNew && !S.ptData.visits){
+    try{ S.ptData.visits = await SVC.visits.listByPatient(S.pt.id,20); }
+    catch(err){ S.ptData.visits=[]; }
+  }
+  var vs=(S.ptData.visits||[]).map(function(v){
+    return [v.id, M.fmtDay(v.visit_date)+' — '+(M.VISIT_TYPE[v.visit_type]||'زيارة')];
+  });
+  var todayVisit=(S.ptData.visits||[]).filter(function(v){return v.visit_date===M.today();})[0];
+  var rOD=e._ref_od||{}, rOS=e._ref_os||{};
+  var iOD=e._iop_od||{}, iOS=e._iop_os||{};
+  // الانكسار والضغط قياسان يخصّان لحظة الفحص. مسار الحفظ في التعديل لا
+  // يرسلهما، فعرضهما قابلين للكتابة يعد الطبيب بما لا يحدث — نقفلهما.
+  var RO = isNew ? '' : ' disabled';
+
+  var h='<div class="sect">أساسي</div>'
+   +'<div class="row">'+fld('تاريخ الفحص',I('e_date',e.exam_date||M.today(),'date'))
+   +(isNew && vs.length ? fld('مرتبط بزيارة',SEL('e_visit',vs,todayVisit?todayVisit.id:'','بدون'))
+                        : fld('المريض',I('e_pt',S.pt.full_name,'text','disabled')))+'</div>'
+   +combo('الشكوى','e_cc',e.chief_complaint,M.COMPLAINTS,'add')
+
+  // ── حدة الإبصار: ثلاث قراءات لا واحدة ──────────────────
+   +'<div class="sect">حدة الإبصار</div>'
+   +'<div class="seghd"><div></div><div>OD اليمنى</div>'
+   +'<div class="os">OS اليسرى</div><div></div></div>'
+   + eyeRow('بلا تصحيح','e_vad','e_vas',e.va_right,e.va_left,M.VA)
+   + eyeRow('بأفضل تصحيح','e_bcvad','e_bcvas',e.va_right_corrected,e.va_left_corrected,M.VA)
+   + eyeRow('بالثقب PH','e_phd','e_phs',e.va_right_ph,e.va_left_ph,M.VA)
+   +'<div class="note">الثقب يفرّق بين ضعف انكساري يتحسّن بالتصحيح وضعف عضوي لا يتحسّن.</div>'
+
+  // ── الانكسار ───────────────────────────────────────────
+   +'<div class="sect">الانكسار</div>'
+   +'<div class="seghd"><div></div><div>OD اليمنى</div>'
+   +'<div class="os">OS اليسرى</div><div></div></div>'
+   + eyeRow('كروي SPH','r_od_sph','r_os_sph',rOD.sphere,rOS.sphere,null,'number',
+            'inputmode="decimal" step="0.25" placeholder="±0.00"'+RO)
+   + eyeRow('أسطواني CYL','r_od_cyl','r_os_cyl',rOD.cylinder,rOS.cylinder,null,'number',
+            'inputmode="decimal" step="0.25" placeholder="±0.00"'+RO)
+   + eyeRow('محور AXIS','r_od_axis','r_os_axis',rOD.axis,rOS.axis,null,'number',
+            'inputmode="numeric" min="0" max="180" placeholder="0-180"'+RO)
+   + eyeRow('قراءة ADD','r_od_add','r_os_add',rOD.add_power,rOS.add_power,null,'number',
+            'inputmode="decimal" step="0.25" placeholder="+0.00"'+RO)
+
+  // ── ضغط العين ──────────────────────────────────────────
+   +'<div class="sect">ضغط العين</div>'
+   +'<div class="seghd"><div></div><div>OD اليمنى</div>'
+   +'<div class="os">OS اليسرى</div><div></div></div>'
+   + eyeRow('mmHg','e_iopd','e_iops',iOD.value_mmhg,iOS.value_mmhg,null,'number',
+            'inputmode="decimal" step="0.5" placeholder="mmHg"'+RO)
+   +'<div class="row">'
+   + fld('طريقة القياس',SEL('e_iopm',pairsArr(M.IOP_METHOD),iOD.method||'','—'))
+   + fld('وقت القياس',I('e_iopt',
+       iOD.measured_at?String(iOD.measured_at).slice(11,16):'','time',RO))+'</div>'
+
+  // ── القطاعان ───────────────────────────────────────────
+   + segBlock('ant','القطاع الأمامي',M.ANT_FIELDS,map)
+   + combo('ملاحظة حرّة على القطاع الأمامي','e_ant',e.anterior_segment,M.ANTERIOR,'add',2)
+   + segBlock('post','القطاع الخلفي',M.POST_FIELDS,map)
+   + combo('ملاحظة حرّة على القطاع الخلفي','e_post',e.posterior_segment,M.POSTERIOR,'add',2)
+
+  // ── فحوص إضافية ────────────────────────────────────────
+   +'<div class="sect">فحوص إضافية</div>'
+   +'<div class="row">'
+   +fld('رؤية الألوان',SEL('e_color',pairsArr(M.COLOR_VISION),e.color_vision,'—'))
+   +fld('حساسية التباين',SEL('e_contrast',pairsArr(M.CONTRAST),e.contrast_sensitivity,'—'))+'</div>'
+   +fld('اختبار التغطية',SEL('e_cover',pairsArr(M.COVER_TEST),e.cover_test,'—'));
+
+  if(isNew){
+    h+='<div class="sect">التشخيص والخطة</div>'
+     +combo('التشخيص','e_dx','',M.DIAGNOSES,'set')
+     +fld('العين المصابة',SEL('e_dxeye',pairsObj(M.EYE),'','—'));
+  } else {
+    h+='<div class="sect">الخطة</div>';
+  }
+
+  h+=combo('خطة العلاج','e_plan',e.treatment_plan,M.PLANS,'add',2);
+
+  if(isNew){
+    h+='<div class="row">'+fld('موعد المتابعة',I('e_fudate','','date'))
+     +fld('سبب المتابعة',I('e_fureason','',''))+'</div>';
+  }
+
+  h+=fld('ملاحظات حرّة',T('e_notes',e.notes,3));
+
+  if(!isNew){
+    h+='<div class="note">الانكسار وضغط العين مقفلان هنا: قياسان يخصّان لحظة '
+      +'الفحص الأصلية، وتعديلهما لاحقاً يزوّر ما حدث. لتسجيل قياس جديد أنشئ فحصاً. '
+      +'التشخيص والمتابعة كذلك تُضافان من تبويبَيهما.</div>';
+  }
+
+  h+='<div class="sfoot"><button class="ghost" id="mcancel">إلغاء</button>'
+   +'<button id="save">حفظ</button></div>';
+
+  openSheet(isNew?'فحص جديد — '+(S.pt.full_name||''):'تعديل الفحص', h, function(){
+    wireSeg('ant',M.ANT_FIELDS);
+    wireSeg('post',M.POST_FIELDS);
+    if(!isNew){ var ms=document.getElementById('e_iopm'); if(ms) ms.disabled=true; }
+    document.getElementById('mcancel').onclick=closeSheet;
+    document.getElementById('save').onclick=async function(){
+      var row={
+        patient_id:S.pt.id, doctor_id:S.doctorId||null, clinic_id:S.clinic||null,
+        exam_date:gv('e_date'), chief_complaint:gv('e_cc'),
+        va_right:gv('e_vad'), va_left:gv('e_vas'),
+        va_right_corrected:gv('e_bcvad'), va_left_corrected:gv('e_bcvas'),
+        va_right_ph:gv('e_phd'), va_left_ph:gv('e_phs'),
+        color_vision:gv('e_color'), contrast_sensitivity:gv('e_contrast'),
+        cover_test:gv('e_cover'),
+        anterior_segment:gv('e_ant'), posterior_segment:gv('e_post'),
+        treatment_plan:gv('e_plan'), notes:gv('e_notes'),
+        findings: readSeg()
+      };
+      if(isNew){
+        row.visit_id = gv('e_visit') || null;
+        row.iop_right = gv('e_iopd'); row.iop_left = gv('e_iops');
+        row.iop_method = gv('e_iopm');
+        var t=gv('e_iopt');
+        if(t) row.iop_at = gv('e_date')+'T'+t+':00';
+        ['od','os'].forEach(function(k){
+          row['ref_'+k+'_sph']=gv('r_'+k+'_sph'); row['ref_'+k+'_cyl']=gv('r_'+k+'_cyl');
+          row['ref_'+k+'_axis']=gv('r_'+k+'_axis'); row['ref_'+k+'_add']=gv('r_'+k+'_add');
+        });
+        row.diagnosis_text = gv('e_dx'); row.diagnosis_eye = gv('e_dxeye')||null;
+        row.follow_up_date = gv('e_fudate'); row.follow_up_reason = gv('e_fureason');
+      }
+      var chk=M.validateExam(row);
+      if(!chk.ok){ toast(chk.errors[0],'bad'); return; }
+      busy('save',true,'حفظ');
+      try{
+        if(isNew){
+          var r = await SVC.examinations.createFull(row);
+          closeSheet();
+          if(r.warnings && r.warnings.length)
+            toast('حُفظ الفحص — لكن: '+r.warnings.join(' · '),'bad',9000);
+          else toast('تم حفظ الفحص','good');
+          delete S.ptData.dx; delete S.ptData.fu;
+        } else {
+          await SVC.examinations.update(e.id,row);
+          closeSheet(); toast('تم حفظ التعديل','good');
+        }
+        S.ptTab='exams'; loadPtTab(true); load(true);
+      }catch(err){ busy('save',false,'حفظ'); toast(err.message,'bad',6000); }
+    };
+  });
+}
+
+// ════════════════════════════════════════════════════════
+// المقارنة الطولية — الزيارة الحالية مقابل سابقتها
+// ════════════════════════════════════════════════════════
+/**
+ * صفوف المقارنة. تُبنى مرة واحدة هنا لأن ترتيبها ترتيب سريري
+ * (إبصار ← انكسار ← ضغط ← أمامي ← خلفي) لا ترتيب أعمدة قاعدة بيانات.
+ */
+function emrRows(){
+  var R=[];
+  function P(k,l,g){ R.push({key:k,label:l,get:g}); }
+  P('ucva_od','UCVA — اليمنى',function(x){return x.va_right;});
+  P('ucva_os','UCVA — اليسرى',function(x){return x.va_left;});
+  P('bcva_od','BCVA — اليمنى',function(x){return x.va_right_corrected;});
+  P('bcva_os','BCVA — اليسرى',function(x){return x.va_left_corrected;});
+  P('ph_od','PH — اليمنى',function(x){return x.va_right_ph;});
+  P('ph_os','PH — اليسرى',function(x){return x.va_left_ph;});
+  P('iop_od','ضغط — اليمنى',function(x){
+    return x.iop_od==null?null:(Number(x.iop_od)+' mmHg');});
+  P('iop_os','ضغط — اليسرى',function(x){
+    return x.iop_os==null?null:(Number(x.iop_os)+' mmHg');});
+  P('sph_od','كروي — اليمنى',function(x){
+    return x.sph_od==null?null:M.diopter(x.sph_od);});
+  P('sph_os','كروي — اليسرى',function(x){
+    return x.sph_os==null?null:M.diopter(x.sph_os);});
+  P('cyl_od','أسطواني — اليمنى',function(x){
+    return x.cyl_od==null?null:M.diopter(x.cyl_od);});
+  P('cyl_os','أسطواني — اليسرى',function(x){
+    return x.cyl_os==null?null:M.diopter(x.cyl_os);});
+  P('axis_od','محور — اليمنى',function(x){return x.axis_od;});
+  P('axis_os','محور — اليسرى',function(x){return x.axis_os;});
+  P('add_od','قراءة — اليمنى',function(x){
+    return x.add_od==null?null:M.diopter(x.add_od);});
+  P('add_os','قراءة — اليسرى',function(x){
+    return x.add_os==null?null:M.diopter(x.add_os);});
+  M.ANT_FIELDS.concat(M.POST_FIELDS).forEach(function(f){
+    ['OD','OS'].forEach(function(eye){
+      P(f[0]+'_'+eye, f[1]+' — '+(eye==='OD'?'اليمنى':'اليسرى'),
+        function(x){ return fval(x._map,eye,f[0]) || null; });
+    });
+  });
+  return R;
+}
+
+function cmpTable(cur,prev,showAll){
+  var rows = M.compareRows(cur,prev,emrRows());
+  var vis = rows.filter(function(r){
+    if(showAll) return true;
+    return r.changed || r.isNew || (r.cur!=null && prev==null);
+  });
+  if(!vis.length) return '<div class="empty"><div>≡</div>لا فرق بين الزيارتين</div>';
+  var h='<div class="cmp"><div class="hd">البند</div>'
+   +'<div class="hd">'+esc(cur.exam_date)+'</div>'
+   +'<div class="hd">'+esc(prev?prev.exam_date:'—')+'</div>';
+  vis.forEach(function(r){
+    var cls = r.changed?'ch':(r.isNew?'nw':'');
+    h+='<div class="lb">'+esc(r.label)+'</div>'
+      +'<div class="'+cls+'">'+esc(r.cur==null?'—':r.cur)+(r.changed?' ⟵':'')+'</div>'
+      +'<div>'+esc(r.prev==null?'—':r.prev)+'</div>';
+  });
+  return h+'</div>';
+}
+
+async function cmpView(examId){
+  if(!S.pt) return;
+  openSheet('مقارنة الزيارات — '+(S.pt.full_name||''),
+    '<div class="empty">جارٍ التحميل...</div>');
+  var pair;
+  try{ pair = await SVC.examinations.comparePair(S.pt.id, examId); }
+  catch(err){ closeSheet(); toast(M.dbError(err),'bad'); return; }
+  if(!pair.cur){ closeSheet(); toast('لا فحوصات للمقارنة','bad'); return; }
+
+  var showAll=false, curId=pair.cur.id;
+  function paint(){
+    var i=0, all=pair.all;
+    for(var k=0;k<all.length;k++) if(all[k].id===curId){ i=k; break; }
+    var cur=all[i], prev=all[i+1]||null;
+    var opts=all.map(function(x,n){
+      return [x.id, M.fmtDay(x.exam_date)+(n===0?' (الأحدث)':'')]; });
+    var h='<div class="field"><label>الزيارة المعروضة</label>'
+     + SEL('c_pick',opts,curId,'—')+'</div>'
+     +(prev?'':'<div class="note">لا زيارة سابقة — هذا أول فحص مسجَّل.</div>')
+     +'<div class="segbar"><label><input type="checkbox" id="c_all"'
+     +(showAll?' checked':'')+'> أظهر البنود غير المتغيّرة</label></div>'
+     + cmpTable(cur,prev,showAll)
+     +'<div class="note">الأصفر تغيّر عن الزيارة السابقة · الأزرق بند جديد. '
+     +'البند الغائب في إحدى الزيارتين ليس تغيّراً.</div>'
+     +'<div class="sfoot"><button class="ghost" id="mcancel">إغلاق</button></div>';
+    openSheet('مقارنة الزيارات — '+(S.pt.full_name||''), h, function(){
+      document.getElementById('mcancel').onclick=closeSheet;
+      document.getElementById('c_pick').onchange=function(){ curId=this.value; paint(); };
+      document.getElementById('c_all').onchange=function(){ showAll=this.checked; paint(); };
+    });
+  }
+  paint();
+}
+
+// ════════════════════════════════════════════════════════
+// التاريخ الجراحي
+// ════════════════════════════════════════════════════════
+function surgRec(s){
+  var when = s.performed_on ? M.fmtDay(s.performed_on)
+           : (s.is_planned?'مخطَّطة — بلا تاريخ':'—');
+  var h='<div class="rec"><div class="rt">'
+   +'<span class="rd">'+esc(when)+'</span>'
+   +'<span class="chip" style="background:#00C2FF22;color:var(--accent)">'
+   +esc(M.EYE[s.eye]||s.eye)+'</span>'
+   +(s.is_planned?'<span class="chip" style="background:#FFB02422;color:var(--gold)">مخطَّطة</span>':'')
+   +(s.is_external?'<span class="chip" style="background:#8892a622;color:var(--muted)">خارج العيادة</span>':'')
+   +'</div><div class="body"><b>'+esc(s.procedure_name)+'</b></div>';
+  var kv='';
+  function add(k,v){ if(v) kv+='<b>'+esc(k)+'</b><span>'+esc(v)+'</span>'; }
+  add('الجرّاح',s.surgeon_name); add('التخدير',s.anesthesia);
+  add('النتيجة',s.outcome); add('المضاعفات',s.complications);
+  add('كود',s.procedure_code); add('ملاحظات',s.notes);
+  if(kv) h+='<div class="kv">'+kv+'</div>';
+  return h+'<div class="ra"><button class="ghost sm" data-esurg="'+s.id+'">تعديل</button>'
+   +'<button class="warn sm" data-dsurg="'+s.id+'">حذف</button></div></div>';
+}
+
+function surgForm(x){
+  if(!S.pt) return;
+  x = x || {};
+  var isNew=!x.id;
+  var h='<div class="row">'
+   +fld('العين',SEL('s_eye',pairsObj(M.EYE),x.eye||'','—'))
+   +fld('تاريخ الإجراء',I('s_on',x.performed_on||'','date'))+'</div>'
+   +combo('العملية','s_name',x.procedure_name,M.SURGERY,'set')
+   +'<div class="segbar">'
+   +'<label><input type="checkbox" id="s_plan"'+(x.is_planned?' checked':'')+'> مخطَّطة لم تُجرَ بعد</label>'
+   +'<label><input type="checkbox" id="s_ext"'+(x.is_external?' checked':'')+'> أُجريت خارج العيادة</label>'
+   +'</div>'
+   +'<div class="row">'
+   +fld('الجرّاح',I('s_surgeon',x.surgeon_name,'text','placeholder="اسم الجرّاح"'))
+   +fld('التخدير',SEL('s_anes',pairsArr(M.ANESTHESIA),x.anesthesia||'','—'))+'</div>'
+   +fld('النتيجة',SEL('s_out',pairsArr(M.SURGERY_OUTCOME),x.outcome||'','—'))
+   +fld('المضاعفات',I('s_comp',x.complications,'text','placeholder="إن وُجدت"'))
+   +'<div class="row">'
+   +fld('كود الإجراء (اختياري)',I('s_code',x.procedure_code,'text','dir="ltr"'))
+   +fld('',I('s_pad','','hidden'))+'</div>'
+   +fld('ملاحظات',T('s_notes',x.notes,2))
+   +'<div class="note">«أُجريت خارج العيادة» تعني رواية المريض عن جراحة سابقة، '
+   +'وتُفصل عن عملياتنا حتى لا تختلط بإحصاء نتائجنا.</div>'
+   +'<div class="sfoot"><button class="ghost" id="mcancel">إلغاء</button>'
+   +'<button id="save">حفظ</button></div>';
+
+  openSheet(isNew?'عملية جديدة':'تعديل العملية', h, function(){
+    document.getElementById('mcancel').onclick=closeSheet;
+    document.getElementById('save').onclick=async function(){
+      var row={ patient_id:S.pt.id, doctor_id:S.doctorId||null, clinic_id:S.clinic||null,
+        eye:gv('s_eye'), procedure_name:gv('s_name'), procedure_code:gv('s_code'),
+        performed_on:gv('s_on')||null,
+        is_planned:document.getElementById('s_plan').checked,
+        is_external:document.getElementById('s_ext').checked,
+        surgeon_name:gv('s_surgeon'), anesthesia:gv('s_anes'),
+        outcome:gv('s_out'), complications:gv('s_comp'), notes:gv('s_notes') };
+      var chk=M.validateSurgery(row);
+      if(!chk.ok){ toast(chk.errors[0],'bad'); return; }
+      busy('save',true,'حفظ');
+      try{
+        if(isNew) await SVC.surgeries.create(row);
+        else      await SVC.surgeries.update(x.id,row);
+        closeSheet(); toast('تم الحفظ','good');
+        S.ptTab='surg'; loadPtTab(true);
+      }catch(err){ busy('save',false,'حفظ'); toast(err.message,'bad',6000); }
+    };
+  });
+}
+
+// ════════════════════════════════════════════════════════
+// تشخيص ومتابعة مستقلّان
+// ════════════════════════════════════════════════════════
+function dxForm(){
+  if(!S.pt) return;
+  var h=combo('التشخيص','d_txt','',M.DIAGNOSES,'set')
+   +'<div class="row">'+fld('العين',SEL('d_eye',pairsObj(M.EYE),'','—'))
+   +fld('الحالة',SEL('d_status',pairsObj(M.DX_STATUS),'active','—'))+'</div>'
+   +'<div class="row">'+fld('تاريخ التشخيص',I('d_on',M.today(),'date'))
+   +fld('ICD-10 (اختياري)',I('d_icd','','text','dir="ltr"'))+'</div>'
+   +'<div class="sfoot"><button class="ghost" id="mcancel">إلغاء</button>'
+   +'<button id="save">حفظ</button></div>';
+  openSheet('تشخيص جديد', h, function(){
+    document.getElementById('mcancel').onclick=closeSheet;
+    document.getElementById('save').onclick=async function(){
+      busy('save',true,'حفظ');
+      try{
+        await SVC.diagnoses.create({
+          patient_id:S.pt.id, doctor_id:S.doctorId||null,
+          diagnosis_text:gv('d_txt'), eye:gv('d_eye')||null,
+          status:gv('d_status')||'active', icd10_code:gv('d_icd'),
+          diagnosed_on:gv('d_on')||M.today()
+        });
+        closeSheet(); toast('تم حفظ التشخيص','good'); loadPtTab(true);
+      }catch(e){ busy('save',false,'حفظ'); toast(e.message,'bad',6000); }
+    };
+  });
+}
+
+function fuForm(){
+  if(!S.pt) return;
+  var h=fld('تاريخ المتابعة',I('u_date','','date'))
+   +fld('السبب',I('u_reason','متابعة'))
+   +fld('ملاحظات',T('u_notes','',2))
+   +'<div class="sfoot"><button class="ghost" id="mcancel">إلغاء</button>'
+   +'<button id="save">حفظ</button></div>';
+  openSheet('متابعة جديدة', h, function(){
+    document.getElementById('mcancel').onclick=closeSheet;
+    document.getElementById('save').onclick=async function(){
+      var row={ patient_id:S.pt.id, doctor_id:S.doctorId||null, clinic_id:S.clinic||null,
+                due_date:gv('u_date'), reason:gv('u_reason'), notes:gv('u_notes') };
+      var chk=M.validateFollowUp(row);
+      if(!chk.ok){ toast(chk.errors[0],'bad'); return; }
+      busy('save',true,'حفظ');
+      try{
+        await SVC.followups.create(row);
+        closeSheet(); toast('تم حفظ المتابعة','good'); loadPtTab(true); load(true);
+      }catch(e){ busy('save',false,'حفظ'); toast(e.message,'bad',6000); }
+    };
+  });
+}
+
+// ════════════════════════════════════════════════════════
+
+// ════════════════════════════════════════════════════════
+// المرحلة 10 — التصوير التشخيصي
+// لا استعلام ولا اسم حاوية هنا: كل شيء عبر SVC.imaging.
+// ════════════════════════════════════════════════════════
+function isAdmin(){ return S.profile && S.profile.role === 'admin'; }
+
+function imgById(id){
+  return (S.ptData.img||[]).filter(function(x){ return x.id===id; })[0];
+}
+
+function stChip(st){
+  var lbl = M.IMAGING_STATUS[st] || st || '—';
+  var c = { uploaded:'#6B8CAE', pending_report:'#FFB830',
+            reported:'#00E5B0', archived:'#6B8CAE' }[st] || '#6B8CAE';
+  return '<span class="chip" style="background:'+c+'22;color:'+c+'">'+esc(lbl)+'</span>';
+}
+
+function imgCard(x){
+  var url = (S.imgUrls||{})[x.id];
+  var pdf = SVC.imaging.isPdf(x);
+  var thumb = url
+    ? '<img src="'+esc(url)+'" alt="'+esc(M.modalityLabel(x.modality))+'" loading="lazy">'
+    : '<div class="ic">'+(pdf?'📄':'🖼')+'</div>';
+
+  var bits=[];
+  if(x.study_date) bits.push(M.fmtDay(x.study_date));
+  if(x.device) bits.push(x.device);
+  var bits2=[];
+  if(x.technician) bits2.push('الفني: '+x.technician);
+  if(x.size_bytes) bits2.push(M.fmtBytes(x.size_bytes));
+
+  var h='<div class="icard" data-img="'+esc(x.id)+'">'
+   +'<div class="ph" data-view="'+esc(x.id)+'">'+thumb
+   +'<span class="chip tag" style="background:#00C2FF22;color:var(--accent)">'
+   +esc(M.EYE[x.eye]||x.eye||'—')+'</span></div>'
+   +'<div class="cb"><div class="mt">'+esc(M.modalityLabel(x.modality))+'</div>'
+   +'<div class="ms">'+esc(bits.join(' · ')||'—')+'</div>'
+   +(bits2.length?'<div class="ms">'+esc(bits2.join(' · '))+'</div>':'')
+   +(x.clinical_indication?'<div class="ms">دواعي: '+esc(x.clinical_indication)+'</div>':'')
+   +'<div class="ms" style="margin-top:5px">'+stChip(x.status)+aiChip(aiOf(x.id))
+   +'</div></div>';
+
+  if(x.doctor_report) h+='<div class="irep">'+esc(x.doctor_report)+'</div>';
+
+  h+='<div class="ia">'
+   +'<button class="ghost sm" data-view="'+esc(x.id)+'">'+(pdf?'فتح':'عرض')+'</button>'
+   +'<button class="ghost sm" data-irep="'+esc(x.id)+'">تقرير</button>'
+   +'<button class="ghost sm" data-ai="'+esc(x.id)+'">🧠 تحليل</button>'
+   +'<button class="ghost sm" data-idl="'+esc(x.id)+'">تنزيل</button>'
+   +'<button class="ghost sm" data-iedit="'+esc(x.id)+'">تعديل</button>'
+   +'<button class="warn sm" data-idel="'+esc(x.id)+'">حذف</button>'
+   +(isAdmin()?'<button class="warn sm" data-ipurge="'+esc(x.id)+'">حذف نهائي</button>':'')
+   +'</div></div>';
+  return h;
+}
+
+// ── نموذج الرفع ─────────────────────────────────────────
+async function imgForm(){
+  if(!S.pt) return;
+  var visits=[];
+  try{ visits = await SVC.visits.listByPatient(S.pt.id, 15); }catch(e){}
+  var vOpts = visits.map(function(v){
+    return [v.id, M.fmtDay(v.visit_date)+' — '+(M.VISIT_TYPE[v.visit_type]||v.visit_type||'زيارة')];
+  });
+
+  var h='<div class="row">'
+   +fld('نوع التصوير',SEL('i_mod',pairsObj(M.MODALITY),'','اختر النوع'))
+   +fld('العين',SEL('i_eye',pairsObj(M.EYE),'','—'))+'</div>'
+   +'<div class="row">'
+   +fld('تاريخ الدراسة',I('i_date',M.today(),'date'))
+   +fld('الزيارة (اختياري)',SEL('i_visit',vOpts,'','بلا ربط'))+'</div>'
+   +combo('الجهاز','i_dev','',M.DEVICES,'set')
+   +fld('الفني',I('i_tech','','text','placeholder="من أجرى التصوير"'))
+   +combo('الدواعي السريرية','i_ind','',M.IMAGING_INDICATION,'set')
+   +fld('الملف','<input type="file" id="i_file" accept="image/jpeg,image/png,image/webp,application/pdf">')
+   +fld('ملاحظات',T('i_notes','',2))
+   +'<div class="note">الملفات تُحفظ في تخزين خاص، ولا يُنشأ لها رابط عام. '
+   +'كل فتح أو تنزيل يمرّ برابط موقّع عمره خمس دقائق ويُسجَّل في سجل التدقيق. '
+   +'الحدّ 25 م.بايت — JPG أو PNG أو WEBP أو PDF.</div>'
+   +'<div class="upst" id="i_st"></div>'
+   +'<div class="sfoot"><button class="ghost" id="mcancel">إلغاء</button>'
+   +'<button id="save">رفع</button></div>';
+
+  openSheet('دراسة تصوير جديدة', h, function(){
+    document.getElementById('mcancel').onclick=closeSheet;
+    document.getElementById('save').onclick=async function(){
+      var fi=document.getElementById('i_file');
+      var file=fi && fi.files && fi.files[0];
+      var o={ patient_id:S.pt.id, visit_id:gv('i_visit')||null,
+              modality:gv('i_mod'), eye:gv('i_eye'), study_date:gv('i_date'),
+              device:gv('i_dev'), technician:gv('i_tech'),
+              clinical_indication:gv('i_ind'), notes:gv('i_notes'), file:file };
+      var chk=M.validateImagingStudy(o);
+      if(!chk.ok){ toast(chk.errors[0],'bad'); return; }
+      if(!file){ toast('اختر ملفاً','bad'); return; }
+      var st=document.getElementById('i_st');
+      o.onProgress=function(m){ if(st) st.textContent=m; };
+      busy('save',true,'رفع');
+      try{
+        await SVC.imaging.upload(o);
+        closeSheet(); toast('تم رفع الدراسة','good');
+        S.ptTab='img'; loadPtTab(true);
+      }catch(e){
+        busy('save',false,'رفع');
+        if(st) st.textContent='';
+        toast(e.message,'bad',6000);
+      }
+    };
+  });
+}
+
+// ── تعديل بيانات دراسة (بلا لمس الملف) ──────────────────
+function imgEditForm(x){
+  if(!x) return;
+  var h='<div class="row">'
+   +fld('نوع التصوير',SEL('e_mod',pairsObj(M.MODALITY),x.modality,'—'))
+   +fld('العين',SEL('e_eye',pairsObj(M.EYE),x.eye,'—'))+'</div>'
+   +'<div class="row">'
+   +fld('تاريخ الدراسة',I('e_date',x.study_date||'','date'))
+   +fld('الحالة',SEL('e_st',pairsObj(M.IMAGING_STATUS),x.status||'uploaded','—'))+'</div>'
+   +combo('الجهاز','e_dev',x.device,M.DEVICES,'set')
+   +fld('الفني',I('e_tech',x.technician))
+   +combo('الدواعي السريرية','e_ind',x.clinical_indication,M.IMAGING_INDICATION,'set')
+   +fld('ملاحظات',T('e_notes',x.notes,2))
+   +'<div class="note">الملف نفسه لا يُستبدل. لو كان الملف خطأ فاحذف الدراسة '
+   +'وارفع غيرها — استبدال ملف تحت نفس السجل يفسد أثر التدقيق.</div>'
+   +'<div class="sfoot"><button class="ghost" id="mcancel">إلغاء</button>'
+   +'<button id="save">حفظ</button></div>';
+
+  openSheet('تعديل الدراسة', h, function(){
+    document.getElementById('mcancel').onclick=closeSheet;
+    document.getElementById('save').onclick=async function(){
+      busy('save',true,'حفظ');
+      try{
+        await SVC.imaging.update(x.id,{
+          modality:gv('e_mod'), eye:gv('e_eye'), study_date:gv('e_date'),
+          device:gv('e_dev'), technician:gv('e_tech'),
+          clinical_indication:gv('e_ind'), notes:gv('e_notes') });
+        var st=gv('e_st');
+        if(st && st!==x.status) await SVC.imaging.setStatus(x.id,st);
+        closeSheet(); toast('تم الحفظ','good'); loadPtTab(true);
+      }catch(e){ busy('save',false,'حفظ'); toast(e.message,'bad',6000); }
+    };
+  });
+}
+
+// ── تقرير الطبيب ────────────────────────────────────────
+function imgReportForm(x){
+  if(!x) return;
+  var done = x.status==='reported';
+  var h='<div class="kv"><b>الدراسة</b><span>'+esc(M.modalityLabel(x.modality))
+   +' — '+esc(M.EYE[x.eye]||x.eye||'')+'</span>'
+   +'<b>التاريخ</b><span>'+esc(x.study_date?M.fmtDay(x.study_date):'—')+'</span>'
+   +(x.device?'<b>الجهاز</b><span>'+esc(x.device)+'</span>':'')
+   +(x.clinical_indication?'<b>الدواعي</b><span>'+esc(x.clinical_indication)+'</span>':'')
+   +'</div>'
+   +fld('تقرير الطبيب',T('r_txt',x.doctor_report,7))
+   +'<div class="note">الاعتماد يجعل التقرير نهائياً ويفتح الدراسة لبوابة المريض. '
+   +'المسودة تُحفظ ولا يراها المريض.</div>'
+   +'<div class="sfoot"><button class="ghost" id="mcancel">إلغاء</button>'
+   +'<button class="ghost" id="draft">حفظ مسودة</button>'
+   +'<button id="save">'+(done?'تحديث الاعتماد':'اعتماد')+'</button></div>';
+
+  openSheet('تقرير الدراسة', h, function(){
+    document.getElementById('mcancel').onclick=closeSheet;
+    async function submit(finalize,btn,lbl){
+      busy(btn,true,lbl);
+      try{
+        await SVC.imaging.saveReport(x.id, gv('r_txt'), finalize);
+        closeSheet(); toast(finalize?'تم اعتماد التقرير':'حُفظت المسودة','good');
+        loadPtTab(true);
+      }catch(e){ busy(btn,false,lbl); toast(e.message,'bad',6000); }
+    }
+    document.getElementById('draft').onclick=function(){ submit(false,'draft','حفظ مسودة'); };
+    document.getElementById('save').onclick =function(){
+      submit(true,'save',done?'تحديث الاعتماد':'اعتماد'); };
+  });
+}
+
+// ── العارض: تكبير وتحريك وتدوير ─────────────────────────
+function closeViewer(){
+  vroot.innerHTML=''; S.viewer=null;
+  if(!sheetOpen()) document.body.style.overflow='';
+}
+
+async function openViewer(x){
+  if(!x) return;
+  var url;
+  try{ url = await SVC.imaging.signedUrl(x); }
+  catch(e){ toast(e.message,'bad',6000); return; }
+
+  // PDF لا يُكبَّر داخل الصفحة: يُفتح في تبويب بالرابط الموقّع نفسه
+  if(SVC.imaging.isPdf(x)){ window.open(url,'_blank','noopener'); return; }
+
+  var title = M.modalityLabel(x.modality)+' — '+(M.EYE[x.eye]||x.eye||'')
+            + (x.study_date?' — '+M.fmtDay(x.study_date):'');
+  vroot.innerHTML='<div class="viewer"><div class="vtop">'
+   +'<div class="vt">'+esc(title)+'</div>'
+   +'<button class="ghost sm" id="vdl">تنزيل</button>'
+   +'<button class="ghost sm" id="vclose">✕</button></div>'
+   +'<div class="vstage" id="vstage"><img id="vimg" src="'+esc(url)+'" alt=""></div>'
+   +'<div class="vbot">'
+   +'<button class="ghost" id="vout">−</button>'
+   +'<span class="zl" id="vzl">100%</span>'
+   +'<button class="ghost" id="vin">+</button>'
+   +'<button class="ghost" id="vrot">⟳</button>'
+   +'<button class="ghost" id="vfit">ملء</button></div>'
+   +'<div class="vhint">عجلة الفأرة أو إصبعان للتكبير · اسحب للتحريك · نقرتان للتبديل</div>'
+   +'</div>';
+  document.body.style.overflow='hidden';
+
+  var img=document.getElementById('vimg');
+  var st={ z:1, x:0, y:0, rot:0 };
+  S.viewer={ id:x.id, st:st };
+
+  function apply(){
+    img.style.transform='translate('+st.x+'px,'+st.y+'px) scale('+st.z+') rotate('+st.rot+'deg)';
+    var zl=document.getElementById('vzl');
+    if(zl) zl.textContent=Math.round(st.z*100)+'%';
+  }
+  function zoom(f,cx,cy){
+    var nz=Math.min(8,Math.max(1,st.z*f));
+    if(nz===st.z) return;
+    if(cx!=null){
+      var r=img.getBoundingClientRect();
+      var ox=cx-(r.left+r.width/2), oy=cy-(r.top+r.height/2);
+      st.x-=ox*(nz/st.z-1); st.y-=oy*(nz/st.z-1);
+    }
+    st.z=nz;
+    if(st.z===1){ st.x=0; st.y=0; }
+    apply();
+  }
+  function fit(){ st.z=1; st.x=0; st.y=0; apply(); }
+
+  document.getElementById('vclose').onclick=closeViewer;
+  document.getElementById('vin').onclick  =function(){ zoom(1.35); };
+  document.getElementById('vout').onclick =function(){ zoom(1/1.35); };
+  document.getElementById('vfit').onclick =fit;
+  document.getElementById('vrot').onclick =function(){ st.rot=(st.rot+90)%360; apply(); };
+  document.getElementById('vdl').onclick  =function(){ downloadStudy(x); };
+
+  var stage=document.getElementById('vstage');
+  stage.onwheel=function(e){ e.preventDefault(); zoom(e.deltaY<0?1.16:1/1.16,e.clientX,e.clientY); };
+  img.ondblclick=function(e){ if(st.z>1) fit(); else zoom(2.5,e.clientX,e.clientY); };
+
+  // السحب والتقريب بإصبعين — pointer events تغطي الفأرة واللمس معاً
+  var pts={}, last=null, pinch=null;
+  stage.onpointerdown=function(e){
+    pts[e.pointerId]={x:e.clientX,y:e.clientY};
+    if(stage.setPointerCapture) try{ stage.setPointerCapture(e.pointerId); }catch(err){}
+    var k=Object.keys(pts);
+    if(k.length===1){ last={x:e.clientX,y:e.clientY}; img.className='drag'; }
+    else if(k.length===2){ pinch=dist(); last=null; }
+  };
+  stage.onpointermove=function(e){
+    if(!pts[e.pointerId]) return;
+    pts[e.pointerId]={x:e.clientX,y:e.clientY};
+    var k=Object.keys(pts);
+    if(k.length>=2 && pinch){
+      var d=dist();
+      if(d>0 && pinch>0){ zoom(d/pinch); pinch=d; }
+      return;
+    }
+    if(last && st.z>1){
+      st.x+=e.clientX-last.x; st.y+=e.clientY-last.y;
+      last={x:e.clientX,y:e.clientY}; apply();
+    }
+  };
+  function up(e){
+    delete pts[e.pointerId];
+    if(Object.keys(pts).length<2) pinch=null;
+    if(!Object.keys(pts).length){ last=null; img.className=''; }
+  }
+  stage.onpointerup=up; stage.onpointercancel=up; stage.onpointerleave=up;
+  function dist(){
+    var k=Object.keys(pts); if(k.length<2) return 0;
+    var a=pts[k[0]], b=pts[k[1]];
+    return Math.sqrt(Math.pow(a.x-b.x,2)+Math.pow(a.y-b.y,2));
+  }
+  apply();
+}
+
+async function downloadStudy(x){
+  try{
+    var url = await SVC.imaging.downloadUrl(x);
+    var a=document.createElement('a');
+    a.href=url; a.download=x.file_name||'study';
+    a.rel='noopener'; a.target='_blank';
+    document.body.appendChild(a); a.click(); a.remove();
+    toast('بدأ التنزيل','good');
+  }catch(e){ toast(e.message,'bad',6000); }
+}
+
+async function deleteStudy(x){
+  if(!confirm('حذف هذه الدراسة من ملف المريض؟\nالملف يبقى محفوظاً ويمكن للمدير استعادته.')) return;
+  try{
+    await SVC.imaging.remove(x.id,'حذف من ملف المريض');
+    toast('تم الحذف','good'); loadPtTab(true);
+  }catch(e){ toast(e.message,'bad',6000); }
+}
+
+async function purgeStudy(x){
+  if(!isAdmin()){ toast('الحذف النهائي للمدير وحده','bad'); return; }
+  if(!confirm('حذف نهائي: الملف والمصغّرة والسجل. لا تراجع.')) return;
+  if(!confirm('تأكيد أخير — هل أنت متأكد؟')) return;
+  try{
+    await SVC.imaging.purge(x.id);
+    toast('حُذفت نهائياً','good'); loadPtTab(true);
+  }catch(e){ toast(e.message,'bad',6000); }
+}
+
+// ════════════════════════════════════════════════════════
+// المرحلة 11 — المساعد الذكي
+//
+// لا مفتاح ولا نداء خارجي هنا: كل شيء عبر SVC.ai، وهي بدورها
+// تنادي Edge Function. ولا كتابة مباشرة في final_report إلا عبر
+// الخدمة، والقاعدة ترفض أي تقرير نهائي بلا مراجعة طبيب.
+//
+// اللوحة تعيد رسم نفسها في #aibody بدل إغلاق الورقة بعد كل إجراء:
+// الطبيب يقرأ، يقرّر، ويرى النتيجة في مكانها.
+// ════════════════════════════════════════════════════════
+
+function aiOf(id){ return (S.aiMap||{})[id] || null; }
+
+function aiChip(a){
+  if(!a) return '';
+  var st = a.status, lbl = M.AI_STATUS[st] || st;
+  var c = { queued:'#6B8CAE', running:'#00C2FF', succeeded:'#00E5B0',
+            failed:'#FF4D6D', superseded:'#6B8CAE' }[st] || '#6B8CAE';
+  // قرار الطبيب أهم من حالة التشغيل: صورة «جاهزة» ومرفوضة ليست جاهزة.
+  if(a.review_action){
+    lbl = M.AI_ACTION[a.review_action] || a.review_action;
+    c = { accept:'#00E5B0', edit:'#00C2FF',
+          reject:'#FF4D6D', regenerate:'#FFB830' }[a.review_action] || c;
+  }
+  return '<span class="chip" style="background:'+c+'22;color:'+c+'">🧠 '+esc(lbl)+'</span>';
+}
+
+function aiWarn(){
+  return '<div class="aiwarn">⚠ '+esc(M.AI_DISCLAIMER)+'</div>';
+}
+
+function sevChip(s){
+  var c = { none:'#00E5B0', mild:'#FFB830', moderate:'#FFB830',
+            severe:'#FF4D6D', unknown:'#6B8CAE' }[s] || '#6B8CAE';
+  return '<span class="chip" style="background:'+c+'22;color:'+c+'">'
+       + esc(M.AI_SEVERITY[s]||s||'—')+'</span>';
+}
+
+// ── جدول الموجودات ──────────────────────────────────────
+function aiFindRows(list, cat){
+  if(!list || !list.length)
+    return '<div class="empty" style="padding:14px">لا موجودات مُهيكلة</div>';
+  return '<div class="aif">'+list.map(function(f){
+    return '<div class="aifr">'
+      +'<div class="k">'+esc(M.aiCategoryLabel(f.category, cat))+'</div>'
+      +'<div class="v">'+esc(M.aiFindingText(f))+'</div>'
+      +'<div class="s">'+sevChip(f.severity)
+      +(f.confidence!=null?'<span class="cf">'+esc(M.pct(f.confidence))+'</span>':'')
+      +'</div>'
+      +(f.detail?'<div class="d">'+esc(f.detail)+'</div>':'')
+      +'</div>';
+  }).join('')+'</div>';
+}
+
+// ── اللوحة ──────────────────────────────────────────────
+async function aiPanel(x){
+  if(!x) return;
+  var head='<div class="kv"><b>الدراسة</b><span>'+esc(M.modalityLabel(x.modality))
+   +' — '+esc(M.EYE[x.eye]||x.eye||'')+'</span>'
+   +'<b>التاريخ</b><span>'+esc(x.study_date?M.fmtDay(x.study_date):'—')+'</span></div>';
+
+  openSheet('المساعد الذكي', head+aiWarn()
+    +'<div id="aibody"><div class="empty" style="padding:18px">جارٍ التحميل…</div></div>'
+    +'<div class="sfoot"><button class="ghost" id="mcancel">إغلاق</button></div>',
+    function(){
+      document.getElementById('mcancel').onclick=function(){
+        closeSheet();
+        // الشارات على الشبكة تُحدَّث بعد الإغلاق لا قبله
+        if(S.ptTab==='img') loadPtTab(true);
+      };
+      aiRender(x);
+    });
+}
+
+async function aiRender(x, msg){
+  var box=document.getElementById('aibody'); if(!box) return;
+  if(msg){ box.innerHTML='<div class="empty" style="padding:18px">'+esc(msg)+'</div>'; return; }
+
+  var latest=null, bundle=null, cat=[], fin=null;
+  try{
+    latest = await SVC.ai.latest(x.id);
+    cat    = await SVC.ai.catalog(x.modality);
+    fin    = await SVC.ai.final.get(x.id);
+    if(latest && latest.analysis_id) bundle = await SVC.ai.bundle(latest.analysis_id);
+  }catch(e){
+    box.innerHTML='<div class="empty" style="padding:18px">'+esc(e.message)+'</div>';
+    return;
+  }
+  box = document.getElementById('aibody'); if(!box) return;   // أُغلقت الورقة أثناء الانتظار
+
+  var h='';
+
+  // ١. لا تحليل بعد
+  if(!latest){
+    h+= cat.length
+      ? '<div class="note">سيُرسَل ملف الدراسة إلى الخادم للتحليل. '
+        +'البنود المطلوبة لهذا الفحص: '+cat.length+' بنداً. '
+        +'الناتج يُحفظ منفصلاً عن تقريرك ولا يظهر للمريض.</div>'
+        +'<div class="sfoot" style="border:0;padding-top:8px">'
+        +'<button id="airun">تحليل الآن</button></div>'
+      : '<div class="empty" style="padding:18px">هذا النوع من التصوير غير مدعوم في التحليل</div>';
+    box.innerHTML=h; wireAi(x); return;
+  }
+
+  var a = bundle ? bundle.analysis : null;
+  var st = latest.status;
+
+  // ٢. جارٍ أو معلّق
+  if(st==='running' || st==='queued'){
+    h+='<div class="empty" style="padding:18px">جارٍ التحليل… قد يستغرق نصف دقيقة</div>'
+      +'<div class="sfoot" style="border:0;padding-top:8px">'
+      +'<button class="ghost" id="airefresh">تحديث</button></div>';
+    box.innerHTML=h; wireAi(x); return;
+  }
+
+  // ٣. فشل موثَّق
+  if(st==='failed'){
+    h+='<div class="aierr"><b>فشل التحليل</b><div>'
+      +esc(latest.error_message||'سبب غير معروف')+'</div></div>'
+      +'<div class="sfoot" style="border:0;padding-top:8px">'
+      +'<button id="airun">إعادة المحاولة</button></div>';
+    box.innerHTML=h; wireAi(x); return;
+  }
+
+  // ٤. نتيجة جاهزة
+  var imp = bundle && bundle.impression;
+  var rev = bundle && bundle.review;
+
+  h+='<div class="aimeta">'
+   +'<span class="chip" style="background:#00E5B022;color:var(--success)">'
+   +esc(M.AI_STATUS[st]||st)+'</span>'
+   +(a&&a.attempt>1?'<span class="meta">المحاولة '+a.attempt+'</span>':'')
+   +(a&&a.model?'<span class="meta" style="direction:ltr">'+esc(a.model)+'</span>':'')
+   +(a&&a.latency_ms?'<span class="meta">'+Math.round(a.latency_ms/1000)+' ث</span>':'')
+   +'</div>';
+
+  h+='<div class="sect">الموجودات</div>'+aiFindRows(bundle?bundle.findings:[], cat);
+
+  if(imp){
+    h+='<div class="sect">الانطباع المقترح</div>'
+      +'<div class="aiimp">'+esc(imp.impression_text)+'</div>';
+    var meta=[];
+    if(imp.urgency) meta.push('الاستعجال: '+(M.AI_URGENCY[imp.urgency]||imp.urgency));
+    if(imp.confidence!=null) meta.push('الثقة: '+M.pct(imp.confidence));
+    if(meta.length) h+='<div class="ms">'+esc(meta.join(' · '))+'</div>';
+    if(imp.differentials && imp.differentials.length)
+      h+='<div class="ms">تشخيصات تفريقية مقترحة: '
+        +esc(imp.differentials.join('، '))+'</div>';
+    if(imp.recommendations)
+      h+='<div class="ms">مقترحات: '+esc(imp.recommendations)+'</div>';
+    if(imp.limitations)
+      h+='<div class="ms" style="color:var(--gold)">حدود التقييم: '
+        +esc(imp.limitations)+'</div>';
+  }
+
+  // ٥. قرار الطبيب
+  h+='<div class="sect">قرار الطبيب</div>';
+  if(rev){
+    var ac=rev.action;
+    var c={accept:'#00E5B0',edit:'#00C2FF',reject:'#FF4D6D',regenerate:'#FFB830'}[ac]||'#6B8CAE';
+    h+='<div class="airev"><span class="chip" style="background:'+c+'22;color:'+c+'">'
+      +esc(M.AI_ACTION[ac]||ac)+'</span> '
+      +'<span class="meta">'+esc(rev.reviewed_at?M.fmtDay(rev.reviewed_at.slice(0,10)):'')+'</span>'
+      +(rev.edited_impression?'<div class="aiimp" style="margin-top:6px">'
+        +esc(rev.edited_impression)+'</div>':'')
+      +(rev.reject_reason?'<div class="ms">السبب: '+esc(rev.reject_reason)+'</div>':'')
+      +(rev.comment?'<div class="ms">'+esc(rev.comment)+'</div>':'')
+      +'</div>';
+  }else{
+    h+='<div class="note">لم تُراجَع بعد. لا يدخل هذا الناتج أي تقرير قبل قرارك.</div>';
+  }
+
+  h+='<div class="aiacts">'
+   +'<button class="sm" data-aiact="accept">قبول</button>'
+   +'<button class="ghost sm" data-aiact="edit">تعديل</button>'
+   +'<button class="warn sm" data-aiact="reject">رفض</button>'
+   +'<button class="ghost sm" data-aiact="regenerate">إعادة توليد</button>'
+   +'</div>';
+
+  // ٦. التقرير النهائي — لا يُفتح إلا بعد قبول أو تعديل
+  h+='<div class="sect">التقرير النهائي</div>';
+  if(fin){
+    h+='<div class="airev">'
+      +'<span class="chip" style="background:'+(fin.status==='final'?'#00E5B022;color:var(--success)':'#FFB83022;color:var(--gold)')+'">'
+      +esc(M.REPORT_STATE[fin.status]||fin.status)+'</span>'
+      +(fin.ai_assisted?' <span class="meta">بمساعدة التحليل</span>':'')
+      +'<div class="aiimp" style="margin-top:6px">'+esc(fin.report_text)+'</div></div>'
+      +'<div class="aiacts"><button class="ghost sm" id="aifedit">تحرير</button>'
+      +(fin.status==='draft'
+        ?'<button class="sm" id="aifinal">اعتماد</button>'
+        :'<button class="ghost sm" id="aireopen">إعادة فتح</button>')
+      +'</div>';
+  }else if(rev && (rev.action==='accept' || rev.action==='edit')){
+    h+='<div class="note">جاهز للنقل إلى تقريرك. النص يبقى قابلاً للتحرير قبل الاعتماد، '
+      +'والتقرير يُنسب إليك أنت لا إلى النموذج.</div>'
+      +'<div class="aiacts"><button class="sm" id="aifnew">إنشاء تقرير من التحليل</button>'
+      +'<button class="ghost sm" id="aifblank">كتابة تقرير من الصفر</button></div>';
+  }else{
+    h+='<div class="note">لا يُنشأ تقرير من تحليل لم يُقبل. اقبل الناتج أو عدّله أولاً، '
+      +'أو اكتب تقريرك من الصفر.</div>'
+      +'<div class="aiacts"><button class="ghost sm" id="aifblank">كتابة تقرير من الصفر</button></div>';
+  }
+
+  box.innerHTML=h;
+  wireAi(x, latest, rev, fin);
+}
+
+function wireAi(x, latest, rev, fin){
+  var box=document.getElementById('aibody'); if(!box) return;
+  var b;
+
+  b=box.querySelector('#airun');
+  if(b) b.onclick=function(){ aiRun(x, false); };
+
+  b=box.querySelector('#airefresh');
+  if(b) b.onclick=function(){ aiRender(x); };
+
+  box.querySelectorAll('[data-aiact]').forEach(function(el){
+    el.onclick=function(){
+      aiDecide(x, latest, el.getAttribute('data-aiact'));
+    };
+  });
+
+  b=box.querySelector('#aifnew');
+  if(b) b.onclick=function(){ finalForm(x, latest, rev, null); };
+
+  b=box.querySelector('#aifblank');
+  if(b) b.onclick=function(){ finalForm(x, null, null, null); };
+
+  b=box.querySelector('#aifedit');
+  if(b) b.onclick=function(){ finalForm(x, latest, rev, fin); };
+
+  b=box.querySelector('#aifinal');
+  if(b) b.onclick=async function(){
+    if(!fin) return;
+    busy('aifinal',true,'اعتماد');
+    try{
+      await SVC.ai.final.finalize(fin.id);
+      toast('اعتُمد التقرير','good'); aiRender(x);
+    }catch(e){ busy('aifinal',false,'اعتماد'); toast(e.message,'bad',6000); }
+  };
+
+  b=box.querySelector('#aireopen');
+  if(b) b.onclick=async function(){
+    if(!fin) return;
+    try{ await SVC.ai.final.reopen(fin.id); toast('أُعيد فتح التقرير','good'); aiRender(x); }
+    catch(e){ toast(e.message,'bad',6000); }
+  };
+}
+
+// ── تشغيل التحليل ───────────────────────────────────────
+async function aiRun(x, force){
+  var box=document.getElementById('aibody');
+  if(box) box.innerHTML='<div class="empty" style="padding:18px">'
+    +'جارٍ إرسال الدراسة للتحليل…<br><span class="meta">قد يستغرق نصف دقيقة</span></div>';
+  try{
+    await SVC.ai.analyze(x.id, { force: !!force });
+    toast('اكتمل التحليل','good');
+  }catch(e){
+    toast(e.message,'bad',7000);
+  }
+  aiRender(x);
+}
+
+// ── القرارات الأربعة ────────────────────────────────────
+function aiDecide(x, latest, action){
+  if(!latest || !latest.analysis_id) return;
+  var id = latest.analysis_id;
+
+  if(action==='accept'){
+    (async function(){
+      try{
+        await SVC.ai.accept(id, {});
+        toast('قُبل التحليل — لم يصر تشخيصاً بعد','good');
+        aiRender(x);
+      }catch(e){ toast(e.message,'bad',6000); }
+    })();
+    return;
+  }
+
+  if(action==='regenerate'){
+    var h='<div class="note">التحليل الحالي لن يُمحى: يُحفظ كنسخة سابقة ويبقى '
+      +'قابلاً للمراجعة. يُسجَّل أنك لم تقتنع بالنتيجة الأولى.</div>'
+      +combo('سبب إعادة التوليد','ai_rr','',M.AI_REJECT_REASONS,'set')
+      +'<div class="sfoot"><button class="ghost" id="mcancel2">إلغاء</button>'
+      +'<button id="dsave">إعادة التوليد</button></div>';
+    return aiSub('إعادة التوليد', h, async function(){
+      await SVC.ai.redo(id, x.id, { comment: gv('ai_rr') });
+      toast('أُعيد التحليل','good');
+    }, x);
+  }
+
+  if(action==='reject'){
+    var h2=combo('سبب الرفض','ai_rj','',M.AI_REJECT_REASONS,'set')
+      +fld('ملاحظة (اختياري)',T('ai_rc','',2))
+      +'<div class="note">الرفض يُغلق باب استعمال هذا الناتج في التقرير النهائي — '
+      +'القاعدة نفسها ترفضه، لا الواجهة.</div>'
+      +'<div class="sfoot"><button class="ghost" id="mcancel2">إلغاء</button>'
+      +'<button class="warn" id="dsave">تسجيل الرفض</button></div>';
+    return aiSub('رفض التحليل', h2, async function(){
+      var chk=M.validateAiReview('reject',{reason:gv('ai_rj')});
+      if(!chk.ok) throw new Error(chk.errors[0]);
+      await SVC.ai.reject(id, { reason: gv('ai_rj'), comment: gv('ai_rc') });
+      toast('سُجّل الرفض','good');
+    }, x);
+  }
+
+  // تعديل: يبدأ من نص النموذج ليعدّله الطبيب لا ليكتب من الصفر
+  (async function(){
+    var base='';
+    try{ var im = await SVC.ai.impression(id); base = im ? im.impression_text : ''; }
+    catch(e){}
+    var h3=fld('الانطباع بعد تعديلك',T('ai_ed',base,7))
+      +fld('ملاحظة (اختياري)',T('ai_ec','',2))
+      +'<div class="note">النص المعدَّل هو ما سيُنقل إلى تقريرك. '
+      +'نصّ النموذج الأصلي يبقى محفوظاً كما هو للمقارنة.</div>'
+      +'<div class="sfoot"><button class="ghost" id="mcancel2">إلغاء</button>'
+      +'<button id="dsave">حفظ التعديل</button></div>';
+    aiSub('تعديل الانطباع', h3, async function(){
+      var chk=M.validateAiReview('edit',{text:gv('ai_ed')});
+      if(!chk.ok) throw new Error(chk.errors[0]);
+      await SVC.ai.edit(id, { text: gv('ai_ed'), comment: gv('ai_ec') });
+      toast('حُفظ التعديل','good');
+    }, x);
+  })();
+}
+
+/**
+ * ورقة فرعية فوق اللوحة. تُعيد فتح اللوحة بعد الإجراء بدل تركها
+ * مغلقة: الطبيب أراد أن يقرّر لا أن يخرج.
+ */
+function aiSub(title, body, run, x){
+  openSheet(title, body, function(){
+    document.getElementById('mcancel2').onclick=function(){ aiPanel(x); };
+    document.getElementById('dsave').onclick=async function(){
+      busy('dsave',true,'حفظ');
+      try{ await run(); aiPanel(x); }
+      catch(e){ busy('dsave',false,'حفظ'); toast(e.message,'bad',6000); }
+    };
+  });
+}
+
+// ── التقرير النهائي ─────────────────────────────────────
+function finalForm(x, latest, rev, fin){
+  var base = fin ? fin.report_text
+           : (rev && rev.edited_impression) ? rev.edited_impression : '';
+  var fromAi = !!(latest && rev && (rev.action==='accept'||rev.action==='edit') && !fin);
+
+  (async function(){
+    if(!base && fromAi){
+      try{
+        var im = await SVC.ai.impression(latest.analysis_id);
+        base = im ? im.impression_text : '';
+      }catch(e){}
+    }
+    var h=fld('نص التقرير',T('fr_txt',base,9))
+      +(fromAi||(fin&&fin.ai_assisted)
+        ? '<div class="note">هذا التقرير مبني على تحليل راجعتَه. سيُحفظ منسوباً '
+          +'إليك مع إشارة إلى التحليل المستعمل — لا كناتج نموذج.</div>'
+        : '<div class="note">تقرير بتأليفك بالكامل، بلا ارتباط بأي تحليل آلي.</div>')
+      +'<div class="sfoot"><button class="ghost" id="mcancel2">إلغاء</button>'
+      +'<button class="ghost" id="frdraft">حفظ مسودة</button>'
+      +'<button id="frfinal">اعتماد</button></div>';
+
+    openSheet(fin?'تحرير التقرير النهائي':'التقرير النهائي', h, function(){
+      document.getElementById('mcancel2').onclick=function(){ aiPanel(x); };
+
+      async function submit(finalize, btn, lbl){
+        var txt = gv('fr_txt');
+        busy(btn,true,lbl);
+        try{
+          if(fromAi || (fin && fin.ai_analysis_id)){
+            var aid = fin ? fin.ai_analysis_id : latest.analysis_id;
+            await SVC.ai.final.fromAi(aid, txt, finalize);
+          }else if(fin){
+            var chk=M.validateFinalReport({image_id:x.id,patient_id:x.patient_id,
+                                           report_text:txt,finalize:finalize});
+            if(!chk.ok) throw new Error(chk.errors[0]);
+            await SVC.ai.final.save({ image_id:x.id, patient_id:x.patient_id,
+              visit_id:x.visit_id, report_text:txt, finalize:finalize });
+          }else{
+            await SVC.ai.final.save({ image_id:x.id, patient_id:x.patient_id,
+              visit_id:x.visit_id, report_text:txt, finalize:finalize });
+          }
+          toast(finalize?'اعتُمد التقرير':'حُفظت المسودة','good');
+          aiPanel(x);
+        }catch(e){ busy(btn,false,lbl); toast(e.message,'bad',7000); }
+      }
+
+      document.getElementById('frdraft').onclick=function(){ submit(false,'frdraft','حفظ مسودة'); };
+      document.getElementById('frfinal').onclick=function(){ submit(true,'frfinal','اعتماد'); };
+    });
+  })();
+}
+
+
+// ── طلب الأشعة ──────────────────────────────────────────
+function ordById(id){
+  return (S.ptData.orders||[]).filter(function(x){ return x.id===id; })[0];
+}
+
+function urgChip(u){
+  if(!u || u==='routine') return '';
+  var c = u==='stat' ? '#FF4D6D' : '#FFB830';
+  return '<span class="chip" style="background:'+c+'22;color:'+c+'">'
+       + esc(M.URGENCY[u]||u)+'</span>';
+}
+
+function ordStChip(st){
+  var c = { requested:'#FFB830', scheduled:'#00C2FF',
+            completed:'#00E5B0', cancelled:'#6B8CAE' }[st] || '#6B8CAE';
+  return '<span class="chip" style="background:'+c+'22;color:'+c+'">'
+       + esc(M.ORDER_STATUS[st]||st)+'</span>';
+}
+
+function ordRec(o){
+  var h='<div class="rec"><div class="rt">'
+   +'<span class="rd">'+esc(M.fmtDay(o.ordered_on))+'</span>'
+   +ordStChip(o.status)+urgChip(o.urgency)
+   +'<div class="spacer"></div>'
+   +'<span class="meta" style="direction:ltr">'+esc(o.order_no||'')+'</span></div>';
+
+  h+='<div style="margin-top:6px">'+(o.items||[]).map(function(it){
+    return '<div class="rxi"><b>'+esc(M.modalityLabel(it.modality))+'</b>'
+      +' <span class="chip" style="background:#00C2FF22;color:var(--accent)">'
+      +esc(M.EYE[it.eye]||it.eye)+'</span>'
+      +(it.notes?'<span> — '+esc(it.notes)+'</span>':'')
+      +(it.done?' <span class="chip" style="background:#00E5B022;color:var(--teal)">تم</span>':'')
+      +'</div>';
+  }).join('')+'</div>';
+
+  if(o.clinical_indication)
+    h+='<div class="body"><b>الدواعي:</b> '+esc(o.clinical_indication)+'</div>';
+  if(o.clinical_notes)
+    h+='<div class="body" style="color:var(--muted)">'+esc(o.clinical_notes)+'</div>';
+  if(o.printed_count)
+    h+='<div class="meta" style="margin-top:5px">طُبع '+o.printed_count+' مرة</div>';
+
+  h+='<div class="ra"><button class="sm" data-oprint="'+o.id+'">🖨 طباعة</button>'
+   +'<button class="ghost sm" data-oedit="'+o.id+'">تعديل</button>'
+   +(o.status!=='completed'
+      ?'<button class="ghost sm" data-odone="'+o.id+'">تم التنفيذ</button>':'')
+   +(o.status!=='cancelled'
+      ?'<button class="ghost sm" data-ocancel="'+o.id+'">إلغاء</button>':'')
+   +'<button class="warn sm" data-odel="'+o.id+'">حذف</button></div>';
+  return h+'</div>';
+}
+
+// بنود الطلب — نفس نمط صفوف الأدوية: نقرأ قبل إعادة الرسم
+function ordRow(i,it){
+  it=it||{};
+  return '<div class="item"><div class="ihead"><span>دراسة '+(i+1)+'</span>'
+   +(i>0?'<button class="warn sm" data-rmo="'+i+'">حذف</button>':'')+'</div>'
+   +'<div class="row">'
+   +fld('النوع',SEL('ord'+i+'_mod',pairsObj(M.MODALITY),it.modality,'اختر'))
+   +fld('العين',SEL('ord'+i+'_eye',pairsObj(M.EYE),it.eye,'—'))+'</div>'
+   +fld('ملاحظة للبند',I('ord'+i+'_note',it.notes,'text',
+        'placeholder="مثال: مقارنة بالفحص السابق"'))+'</div>';
+}
+function readOrdItems(){
+  return S.ordItems.map(function(_,i){
+    return { modality:gv('ord'+i+'_mod'), eye:gv('ord'+i+'_eye'),
+             notes:gv('ord'+i+'_note') };
+  });
+}
+function paintOrdItems(keep){
+  if(keep) S.ordItems = readOrdItems();
+  var box=document.getElementById('orditems'); if(!box) return;
+  box.innerHTML = S.ordItems.map(function(it,i){ return ordRow(i,it); }).join('');
+  box.querySelectorAll('[data-rmo]').forEach(function(el){
+    el.onclick=function(){
+      S.ordItems = readOrdItems();
+      S.ordItems.splice(parseInt(el.getAttribute('data-rmo'),10),1);
+      paintOrdItems(false);
+    };
+  });
+}
+
+async function orderForm(existing){
+  if(!S.pt) return;
+  var o = existing || {};
+  S.ordItems = (o.items && o.items.length)
+    ? o.items.map(function(it){
+        return {modality:it.modality, eye:it.eye, notes:it.notes}; })
+    : [{}];
+
+  var visits=[];
+  try{ visits = await SVC.visits.listByPatient(S.pt.id, 15); }catch(e){}
+  var vOpts = visits.map(function(v){
+    return [v.id, M.fmtDay(v.visit_date)+' — '
+      +(M.VISIT_TYPE[v.visit_type]||v.visit_type||'زيارة')]; });
+
+  var h='<div class="row">'
+   +fld('تاريخ الطلب',I('o_date',o.ordered_on||M.today(),'date'))
+   +fld('الاستعجال',SEL('o_urg',pairsObj(M.URGENCY),o.urgency||'routine','—'))+'</div>'
+   +fld('الزيارة (اختياري)',SEL('o_visit',vOpts,o.visit_id||'','بلا ربط'))
+   +'<div id="orditems"></div>'
+   +'<button class="ghost full" id="addord">＋ دراسة أخرى</button>'
+   +combo('الدواعي السريرية','o_ind',o.clinical_indication,M.IMAGING_INDICATION,'set')
+   +fld('ملاحظات للمركز',T('o_notes',o.clinical_notes,2))
+   +'<div class="note">الورقة يحملها المريض إلى مركز الأشعة. رقم الطلب '
+   +'يُولَّد في القاعدة لا في المتصفح، وكل طباعة تُسجَّل باسم من طبعها.</div>'
+   +'<div class="sfoot"><button class="ghost" id="mcancel">إلغاء</button>'
+   +'<button id="save">'+(existing?'حفظ التعديل':'حفظ وطباعة')+'</button></div>';
+
+  openSheet(existing?('تعديل الطلب '+(o.order_no||'')):'طلب أشعة جديد', h, function(){
+    paintOrdItems(false);
+    document.getElementById('mcancel').onclick=closeSheet;
+    document.getElementById('addord').onclick=function(){
+      S.ordItems=readOrdItems(); S.ordItems.push({}); paintOrdItems(false);
+    };
+    document.getElementById('save').onclick=async function(){
+      var items=readOrdItems().filter(function(l){ return M.str(l.modality); });
+      var data={ patient_id:S.pt.id, visit_id:gv('o_visit')||null,
+                 doctor_id:S.doctorId||null, clinic_id:S.clinic||null,
+                 ordered_on:gv('o_date'), urgency:gv('o_urg')||'routine',
+                 clinical_indication:gv('o_ind'), clinical_notes:gv('o_notes'),
+                 items:items };
+      var chk=M.validateImagingOrder(data);
+      if(!chk.ok){ toast(chk.errors[0],'bad'); return; }
+      var lbl=existing?'حفظ التعديل':'حفظ وطباعة';
+      busy('save',true,lbl);
+      try{
+        var saved = existing
+          ? await SVC.imaging.orders.update(existing.id, data)
+          : await SVC.imaging.orders.create(data);
+        closeSheet(); toast('تم حفظ الطلب','good');
+        await loadPtTab(true);
+        if(!existing) printOrder(saved);
+      }catch(e){ busy('save',false,lbl); toast(e.message,'bad',7000); }
+    };
+  });
+}
+
+async function printOrder(o){
+  if(!o) return;
+  var full = o;
+  if(!full.items || !full.items.length){
+    try{ full = await SVC.imaging.orders.get(o.id); }
+    catch(e){ toast(e.message,'bad',6000); return; }
+  }
+  proot.innerHTML = orderPrintHTML(full);
+  window.print();
+  try{ await SVC.imaging.orders.markPrinted(full.id); }
+  catch(e){ /* الطباعة تمّت — تسجيلها لا يوقفها */ }
+  loadPtTab(true);
+}
+
+function orderPrintHTML(o){
+  var p=S.pt||{}, age=ageOf(p);
+  var h='<div class="pr"><div class="prh">'
+   +'<div class="prc">'+esc(clinicName(o.clinic_id))+'</div>'
+   +'<div class="prd">'+esc(S.profile.fullName||'')+'</div></div>'
+   +'<div class="prm">'
+   +'<span><b>المريض:</b> '+esc(p.full_name||'—')+'</span>'
+   +(p.patient_code?'<span><b>الكود:</b> '+esc(p.patient_code)+'</span>':'')
+   +(age!=null?'<span><b>العمر:</b> '+age+' سنة</span>':'')
+   +(p.phone?'<span><b>الهاتف:</b> '+esc(p.phone)+'</span>':'')
+   +'<span><b>التاريخ:</b> '+esc(o.ordered_on||M.today())+'</span>'
+   +'<span><b>رقم الطلب:</b> '+esc(o.order_no||'—')+'</span>'
+   +'</div>'
+   +'<div class="prt">طلب تصوير تشخيصي</div>';
+
+  if(o.urgency && o.urgency!=='routine')
+    h+='<div class="pra">‼ '+esc(M.URGENCY[o.urgency])
+      +(o.urgency==='stat'?' — يُنفَّذ اليوم':'')+'</div>';
+
+  h+='<table class="prx"><thead><tr><th>#</th><th>الدراسة المطلوبة</th>'
+   +'<th>العين</th><th>ملاحظات</th></tr></thead><tbody>'
+   +(o.items||[]).map(function(it,i){
+      return '<tr><td>'+(i+1)+'</td>'
+        +'<td class="e">'+esc(M.modalityLabel(it.modality))+'</td>'
+        +'<td>'+esc(M.EYE[it.eye]||it.eye||'—')+'</td>'
+        +'<td>'+esc(it.notes||'')+'</td></tr>';
+   }).join('')
+   +'</tbody></table>';
+
+  if(o.clinical_indication)
+    h+='<div class="prn"><b>الدواعي السريرية:</b> '+esc(o.clinical_indication)+'</div>';
+  if(o.clinical_notes)
+    h+='<div class="prn"><b>ملاحظات:</b> '+esc(o.clinical_notes)+'</div>';
+
+  h+='<div class="prn"><b>لمركز الأشعة:</b> يُرجى تسليم المريض الصور والتقرير، '
+   +'وإحضارهما في الزيارة القادمة.</div>'
+   +'<div class="prs">توقيع الطبيب: ____________________</div>'
+   +'<div class="prf">'+esc(clinicName(o.clinic_id))+' — '
+   +esc(o.order_no||'')+'</div></div>';
+  return h;
+}
+
+async function cancelOrder(o){
+  if(!o) return;
+  if(!confirm('إلغاء هذا الطلب؟ يبقى في السجل بحالة «ملغى».')) return;
+  try{ await SVC.imaging.orders.setStatus(o.id,'cancelled');
+       toast('أُلغي الطلب','good'); loadPtTab(true); }
+  catch(e){ toast(e.message,'bad',6000); }
+}
+async function completeOrder(o){
+  if(!o) return;
+  try{ await SVC.imaging.orders.setStatus(o.id,'completed');
+       toast('تم تسجيل التنفيذ','good'); loadPtTab(true); }
+  catch(e){ toast(e.message,'bad',6000); }
+}
+async function deleteOrder(o){
+  if(!o) return;
+  if(!confirm('حذف الطلب من ملف المريض؟')) return;
+  try{ await SVC.imaging.orders.remove(o.id);
+       toast('تم الحذف','good'); loadPtTab(true); }
+  catch(e){ toast(e.message,'bad',6000); }
+}
+
+function wire(){
+  var b;
+  b=document.getElementById('out');
+  if(b) b.onclick=async function(){
+    if(S.unsub) try{S.unsub();}catch(e){}
+    await IAPP.signOut(); S.profile=null; closeSheet(); renderLogin();
+  };
+  document.querySelectorAll('[data-tab]').forEach(function(el){
+    el.onclick=function(){ S.tab=el.getAttribute('data-tab'); S.view='main'; render(); };
+  });
+  document.querySelectorAll('[data-go]').forEach(function(el){
+    el.onclick=function(){ S.tab=el.getAttribute('data-go'); S.view='main'; render(); };
+  });
+  document.querySelectorAll('[data-pt]').forEach(function(el){
+    el.onclick=function(){ S.ptTab=el.getAttribute('data-pt'); render(); loadPtTab(); };
+  });
+  // this لا b: المتغيّر مشترك ويُعاد إسناده قبل أن يُستدعى المعالِج
+  b=document.getElementById('cl');
+  if(b) b.onchange=function(){ S.clinic=this.value; S.pLoaded=false; subscribe(); load(); };
+
+  b=document.getElementById('q');
+  if(b) b.oninput=function(){
+    S.q=this.value; clearTimeout(qTimer); qTimer=setTimeout(loadPatients,340);
+  };
+  b=document.getElementById('newp');  if(b) b.onclick=function(){ patientForm(null); };
+  b=document.getElementById('arch');
+  if(b) b.onclick=function(){ S.archived=!S.archived; render(); loadPatients(); };
+
+  b=document.getElementById('back');  if(b) b.onclick=backToList;
+  b=document.getElementById('pedit'); if(b) b.onclick=function(){ patientForm(S.pt); };
+  b=document.getElementById('newvisit'); if(b) b.onclick=function(){ visitForm(null); };
+  b=document.getElementById('newexam'); if(b) b.onclick=function(){ examForm(null); };
+  b=document.getElementById('cmpbtn');  if(b) b.onclick=function(){ cmpView(null); };
+  b=document.getElementById('newglass'); if(b) b.onclick=glassesForm;
+  b=document.getElementById('newdrug');  if(b) b.onclick=drugsForm;
+  b=document.getElementById('parch');
+  if(b) b.onclick=async function(){
+    var off = S.pt.is_active===false;
+    if(!off && !confirm('أرشفة المريض؟ السجل الطبي يبقى كاملاً ويختفي من القوائم فقط.')) return;
+    try{
+      if(off) await SVC.patients.unarchive(S.pt.id); else await SVC.patients.archive(S.pt.id);
+      S.pt = await SVC.patients.get(S.pt.id);
+      S.pLoaded=false; toast(off?'تمت الاستعادة':'تمت الأرشفة','good');
+      render(); paintPt(); load(true);
+    }catch(e){ toast(M.dbError(e),'bad'); }
+  };
+
+  document.querySelectorAll('[data-fudone]').forEach(function(el){
+    el.onclick=async function(e){ e.stopPropagation();
+      try{ await SVC.followups.setStatus(el.getAttribute('data-fudone'),'completed');
+           toast('تمت المتابعة','good'); load(); }
+      catch(err){ toast(err.message,'bad'); }
+    };
+  });
+  wireRows(document);
+}
+
+// ════════════════════════════════════════════════════════
+(async function(){
+  var missing=[];
+  if(!window.IAPP) missing.push('iapp-core.js');
+  else{
+    if(!IAPP.appointments) missing.push('appointment-service.js');
+    if(!IAPP.models)       missing.push('js/models.js');
+    if(!IAPP.svc||!IAPP.svc.patients)      missing.push('js/svc-patients.js');
+    if(!IAPP.svc||!IAPP.svc.visits)        missing.push('js/svc-clinical.js');
+    if(!IAPP.svc||!IAPP.svc.examinations)  missing.push('js/svc-clinical.js');
+    if(!IAPP.svc||!IAPP.svc.prescriptions) missing.push('js/svc-rx.js');
+  }
+  if(missing.length){
+    root.innerHTML='<div class="empty"><div>⚠️</div>ملفات ناقصة:<br>'
+      +'<span style="font-size:11px;direction:ltr;display:block;margin-top:8px">'
+      +missing.filter(function(v,i,a){return a.indexOf(v)===i;}).join('<br>')+'</span>'
+      +'<div style="font-size:11px;margin-top:10px">تأكد من رفع مجلد js بجوار الصفحة</div></div>';
+    return;
+  }
+  M=IAPP.models; SVC=IAPP.svc; A=IAPP.appointments;
+
+  var s=await IAPP.getSession();
+  if(!s){ renderLogin(); return; }
+  var p=await IAPP.getProfile();
+  if(!p||['doctor','admin'].indexOf(p.role)===-1){
+    await IAPP.signOut(); renderLogin(p?'هذا الحساب غير مصرّح له':''); return;
+  }
+  IAPP._profile=p; S.profile=p; boot();
+})();
+})();
+</script>
+</body>
+</html>
