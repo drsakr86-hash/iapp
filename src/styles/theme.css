@@ -1,0 +1,40 @@
+/*
+ * Visual identity carried over verbatim from the legacy applications.
+ * Source of truth: v2/doctor.html :root  and  iapp-core.js  `var C = {...}`
+ * These are the existing product identity — do not re-pick them.
+ */
+:root {
+  --bg: #0A0F1E;
+  --surface: #111827;
+  --card: #141E30;
+  --border: #1E2D45;
+  --accent: #00C2FF;
+  --teal: #00E5CC;
+  --gold: #FFB830;
+  --text: #E8F4FF;
+  --muted: #6B8CAE;
+  --danger: #FF4D6D;
+  --success: #00E5B0;
+  --purple: #A78BFA;
+
+  --radius-sm: 8px;
+  --radius: 10px;
+  --radius-lg: 14px;
+
+  --gap-xs: 6px;
+  --gap-sm: 10px;
+  --gap: 14px;
+  --gap-lg: 20px;
+
+  --fs-xs: 11px;
+  --fs-sm: 13px;
+  --fs-md: 15px;
+  --fs-lg: 18px;
+  --fs-xl: 22px;
+
+  --shell-max: 820px;
+  --topbar-h: 56px;
+  --bottomnav-h: 58px;
+
+  --font: 'Segoe UI', Tahoma, Arial, sans-serif;
+}

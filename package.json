@@ -1,0 +1,30 @@
+{
+  "name": "iapp-react",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build && node scripts/pages-fallback.mjs",
+    "preview": "vite preview",
+    "typecheck": "tsc -b --noEmit",
+    "lint": "oxlint src",
+    "smoke": "vite build --config vite.smoke.config.ts && node tests/smoke.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.112.4",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-router-dom": "^7.18.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^6.1.0",
+    "jsdom": "^30.0.1",
+    "oxlint": "^1.79.0",
+    "typescript": "~6.0.2",
+    "vite": "^8.2.2"
+  }
+}
