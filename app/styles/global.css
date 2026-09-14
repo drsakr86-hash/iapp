@@ -1,0 +1,610 @@
+@import './theme.css';
+
+/*
+ * RTL: every directional rule below uses CSS logical properties
+ * (inline-start / inline-end / margin-inline) rather than left/right.
+ * dir="rtl" on <html> then flips the entire layout with no per-component
+ * overrides. Introducing a physical `margin-left` anywhere will silently
+ * break the Arabic layout — see KNOWN ISSUES in the step report.
+ */
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+  padding-bottom: env(safe-area-inset-bottom);
+  -webkit-font-smoothing: antialiased;
+}
+
+button { font-family: inherit; cursor: pointer; }
+input, select, textarea { font-family: inherit; }
+a { color: var(--accent); text-decoration: none; }
+
+/* ── shell ─────────────────────────────────────────────── */
+.app-shell {
+  max-width: var(--shell-max);
+  margin-inline: auto;
+  padding: 12px;
+  /* Static constant, not a runtime measurement — .bottomnav is
+     `position: fixed` on mobile only (see below), which removes it from
+     document flow, so nothing else can reserve space for it except an
+     explicit padding here. A fixed generous margin (24px, up from the
+     original 16px) is the deliberate tradeoff for dropping the
+     ResizeObserver-based exact measurement: slightly more empty space at
+     the bottom on mobile, in exchange for zero runtime dependency. */
+  padding-bottom: calc(var(--bottomnav-h) + 24px + env(safe-area-inset-bottom));
+}
+
+/* ── top chrome — pure normal document flow, no positioning at all ────
+   .topbar, .bottomnav (desktop), and .subnav are ordinary, unpositioned
+   block-level siblings, in that order, with <main> right after them.
+   Normal-flow siblings cannot overlap one another — there is no CSS
+   positioning mode in play here that could get that wrong, which is the
+   entire point after repeated real-browser reports that every sticky-
+   based version (independently-sticky siblings with a calculated offset,
+   then a single sticky wrapper with a browser-computed offset) still
+   showed content starting underneath the nav in real Chrome. This
+   version has no offset of any kind to get right or wrong on desktop.
+
+   The one deliberate exception is .bottomnav specifically on MOBILE,
+   which stays `position: fixed; bottom: 0` — an intentional, kept
+   bottom tab bar, not a leftover. Because a fixed element does not
+   reserve flow space, .app-shell's bottom padding above compensates for
+   it (a static constant now, not measured — see that comment). */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-sm);
+  min-height: var(--topbar-h);
+  padding-inline: 12px;
+  background: var(--bg);
+  border-block-end: 1px solid var(--border);
+}
+.topbar__title { font-size: var(--fs-md); font-weight: 600; }
+.topbar__spacer { flex: 1; }
+.topbar__meta { font-size: var(--fs-xs); color: var(--muted); }
+
+.bottomnav {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  min-height: calc(var(--bottomnav-h) + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--surface);
+  border-block-start: 1px solid var(--border);
+}
+.bottomnav__item {
+  flex: 1 1 0;
+  max-width: 140px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  background: none;
+  border: 0;
+  padding: 0;
+}
+.bottomnav__item[aria-current='page'] { color: var(--accent); }
+.bottomnav__icon { font-size: 18px; line-height: 1; }
+
+/* ── accounting secondary nav — module-inside-doctor-app pattern ──────
+   Plain, unpositioned block-level content, exactly like .topbar. When
+   present, it simply adds its own natural height in normal flow between
+   .bottomnav and <main> — nothing to calculate. */
+.subnav {
+  display: flex;
+  gap: 4px;
+  padding: 6px 12px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  border-block-end: 1px solid var(--border);
+}
+.subnav::-webkit-scrollbar { display: none; }
+.subnav__item {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  background: none;
+  border: 0;
+  padding: 6px 12px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.subnav__item[aria-current='page'] { color: var(--accent); background: var(--card); }
+.subnav__icon { font-size: 14px; line-height: 1; }
+
+/* ── surfaces ──────────────────────────────────────────── */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--gap);
+}
+.card + .card { margin-block-start: var(--gap-sm); }
+.card__title { font-size: var(--fs-md); font-weight: 600; margin: 0 0 var(--gap-xs); }
+.muted { color: var(--muted); }
+.stack { display: flex; flex-direction: column; gap: var(--gap-sm); }
+.row { display: flex; align-items: center; gap: var(--gap-sm); }
+
+/* ── controls ──────────────────────────────────────────── */
+.btn {
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  padding: 10px 16px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: #04121f;
+  background: var(--accent);
+  transition: opacity .12s;
+}
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn--outline { background: transparent; color: var(--text); border-color: var(--border); }
+.btn--danger { background: var(--danger); color: #fff; }
+.btn--full { inline-size: 100%; }
+
+.link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.field { display: block; }
+.field__label {
+  display: block;
+  margin-block-end: 5px;
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+.input {
+  inline-size: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  color: var(--text);
+  font-size: var(--fs-sm);
+  outline: none;
+}
+.input:focus { border-color: var(--accent); }
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  border: 1px solid currentColor;
+}
+
+/* ── feedback ──────────────────────────────────────────── */
+.centered {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gap);
+  padding: 24px;
+  text-align: center;
+}
+/* Spinner.tsx is used BOTH as a genuine full-page state (ProtectedRoute's
+   session-check gate — no header/nav exists yet at that point, so 100dvh
+   is correct) AND inline within an already-rendered page (almost every
+   other usage: "{loading ? <Spinner/> : null}" sitting inside a page
+   that's already below the header/nav). The 100dvh default is wrong for
+   the inline case — it ignores however much vertical space the header/
+   nav and any content above it already used, producing an unnecessarily
+   tall page while loading. This is a real defect independent of the nav
+   layout itself, found while investigating a reported overlap — it did
+   not turn out to be the cause of that, but was a genuine bug worth
+   fixing regardless. */
+.centered--inline { min-height: 160px; padding: 32px 24px; }
+.spinner {
+  inline-size: 26px;
+  block-size: 26px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation-duration: 2s; }
+}
+
+.toasts {
+  position: fixed;
+  inset-inline: 12px;
+  bottom: calc(var(--bottomnav-h) + 16px);
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  pointer-events: none;
+}
+.toast {
+  max-inline-size: min(440px, 100%);
+  padding: 11px 15px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: var(--fs-sm);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, .45);
+}
+.toast--error { border-color: var(--danger); color: var(--danger); }
+.toast--success { border-color: var(--success); color: var(--success); }
+
+.alert {
+  border: 1px solid var(--danger);
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  font-size: var(--fs-sm);
+}
+
+/* ── auth ──────────────────────────────────────────────── */
+.auth {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.auth__box {
+  inline-size: 100%;
+  max-inline-size: 380px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+}
+.auth__brand { text-align: center; margin-block-end: 18px; }
+.auth__brand h1 { margin: 0; font-size: var(--fs-xl); color: var(--accent); letter-spacing: 2px; }
+.auth__brand p { margin: 4px 0 0; font-size: var(--fs-xs); color: var(--muted); }
+
+/* ── responsive: tablet / desktop ──────────────────────── */
+@media (min-width: 900px) {
+  :root { --shell-max: 1100px; }
+  .bottomnav {
+    /* Ordinary, unpositioned flow content here too — no sticky, no
+       calculated offset. It simply sits between .topbar and .subnav/
+       <main> as the next block in the document, exactly like any other
+       element. */
+    position: static;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    align-items: center;
+    gap: var(--gap-xs);
+    padding: 8px 12px;
+    border-block-start: 0;
+    border-block-end: 1px solid var(--border);
+    background: transparent;
+  }
+  .bottomnav__item { flex: 0 0 auto; flex-direction: row; padding: 6px 14px; border-radius: 999px; }
+  .bottomnav__item[aria-current='page'] { background: var(--card); }
+  .app-shell { padding-bottom: 24px; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+ * MEDICAL LTR ISLANDS
+ * ═══════════════════════════════════════════════════════════════════════
+ * The document is dir="rtl". These classes carve out the regions that must
+ * be read left-to-right. They are applied ONLY by components/medical/*.
+ *
+ * `unicode-bidi: isolate` is the important part. Without it a value still
+ * participates in the surrounding RTL paragraph's bidi run, so a leading '-'
+ * is treated as a neutral character and reorders to the end: -2.75 displays
+ * as 2.75-. Isolation resolves the sign against LTR and prevents the value
+ * from changing the direction of the Arabic text beside it.
+ * ------------------------------------------------------------------- */
+
+.med-value {
+  direction: ltr;
+  unicode-bidi: isolate;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+  white-space: nowrap;
+}
+
+.med-text {
+  direction: ltr;
+  unicode-bidi: isolate;
+  text-align: left;
+}
+
+.med-block {
+  direction: ltr;
+  unicode-bidi: isolate;
+  text-align: left;
+}
+
+.med-input {
+  direction: ltr;
+  unicode-bidi: isolate;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  width: 100%;
+  padding: 8px 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 15px;
+}
+
+.med-input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* ── Refraction chart ──────────────────────────────────────────────────
+ * Inside .med-block the grid is LTR, so column 1 is leftmost. The eye
+ * column comes first, then SPH CYL AXIS ADD — conventional chart order.
+ * On a phone the chart scrolls horizontally rather than wrapping: a
+ * refraction table that reflows is unreadable and easy to misread. */
+
+.rx-chart { width: 100%; overflow-x: auto; }
+
+.rx-chart table {
+  width: 100%;
+  min-width: 340px;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.rx-chart th,
+.rx-chart td {
+  border: 1px solid var(--line);
+  padding: 7px 6px;
+  text-align: center;
+}
+
+.rx-chart th {
+  background: var(--surface-2, rgba(0, 0, 0, .03));
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  color: var(--muted);
+}
+
+/* The eye cell is the row header: OD then OS, never reordered. */
+.rx-chart .rx-eye {
+  font-weight: 700;
+  letter-spacing: .06em;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.rx-chart .rx-eye small {
+  display: block;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--muted);
+  font-size: 11px;
+  /* The Arabic gloss sits inside an LTR block, so it needs its own
+     direction restored — this is the one place that is intentional. */
+  direction: rtl;
+  unicode-bidi: isolate;
+}
+
+/* ── Medication lines ────────────────────────────────────────────────── */
+
+.rx-med { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 10px; }
+.rx-med + .rx-med { margin-block-start: 8px; }
+.rx-med__name { font-weight: 600; }
+.rx-med__sig { color: var(--muted); font-size: 13px; margin-block-start: 2px; }
+
+/* Two-column field grid; collapses on narrow phones. */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap-sm, 10px); }
+@media (max-width: 420px) { .grid-2 { grid-template-columns: 1fr; } }
+
+.field textarea,
+.field select,
+.field input[type="date"],
+.field input[type="time"] {
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+ * Shared clinical-form primitives.
+ * ═══════════════════════════════════════════════════════════════════
+ * ExaminationForm, VisitForm, ComparisonView, NewAppointmentForm and
+ * ExamCard all already reference .modal, .grid2, .segrow, .suggest,
+ * .chip and .form__section, but none of these were ever defined — every
+ * clinical form has been rendering as unstyled, vertically-stacked
+ * blocks with browser defaults. Defined here once, shared by all of
+ * them, rather than duplicated per component.
+ * ─────────────────────────────────────────────────────────────────── */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 8, 20, 0.72);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow-y: auto;
+  padding: var(--gap-lg) var(--gap);
+  z-index: 60;
+}
+.modal__box {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--gap-lg);
+  width: 100%;
+  max-width: 480px;
+  margin-block: var(--gap-lg);
+}
+.modal__box--wide { max-width: 960px; }
+.modal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-sm);
+  margin-block-end: var(--gap);
+}
+.modal__title {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: 700;
+}
+.modal__x {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: var(--radius-sm);
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+.modal__x:hover { color: var(--text); border-color: var(--accent); }
+.modal__body { display: flex; flex-direction: column; gap: var(--gap-xs); }
+
+/* .grid2 is a pre-existing typo for .grid-2 in several components; both
+   names are supported here so neither silently renders unstyled. */
+.grid-2,
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap-sm); }
+@media (max-width: 420px) { .grid-2, .grid2 { grid-template-columns: 1fr; } }
+
+.form__section {
+  margin: var(--gap) 0 var(--gap-xs);
+  font-size: var(--fs-md);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.chip {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--accent);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: var(--fs-xs);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.chip:hover { border-color: var(--accent); }
+.chip:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.suggest { display: flex; gap: 4px; align-items: center; }
+.suggest .input,
+.suggest input { flex: 1; min-width: 0; }
+.suggest__pick { flex: 0 0 auto; width: 34px; padding: 0 2px; text-align: center; }
+
+.segrow {
+  display: grid;
+  grid-template-columns: minmax(90px, 1fr) 1fr 1fr;
+  gap: var(--gap-sm);
+  align-items: center;
+  padding-block: 4px;
+}
+.segrow--head { font-size: var(--fs-xs); padding-block: 0 6px; }
+.segrow__label { color: var(--muted); font-size: var(--fs-sm); }
+@media (max-width: 560px) {
+  .segrow { grid-template-columns: 1fr; }
+  .segrow__label { font-weight: 600; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+ * Clinical examination — OD | OS two-column layout.
+ * ═══════════════════════════════════════════════════════════════════
+ * This workspace is intentionally LTR regardless of the surrounding
+ * Arabic UI: OD (right eye) reads first, on the left; OS (left eye)
+ * follows, on the right. This is the standard ophthalmology chart
+ * convention, not a general RTL/LTR preference.
+ * ─────────────────────────────────────────────────────────────────── */
+
+.exam2col-wrap { direction: ltr; text-align: left; }
+
+.exam2col-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gap-xs);
+  justify-content: flex-end;
+  margin-block: var(--gap-xs) 0;
+}
+
+.exam2col {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--gap);
+  margin-block-start: var(--gap-sm);
+  align-items: start;
+}
+@media (max-width: 720px) {
+  .exam2col { grid-template-columns: 1fr; }
+}
+
+.exam2col__col {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--gap);
+  min-width: 0;
+}
+
+.exam2col__eye-header {
+  margin: 0 0 var(--gap-sm);
+  padding-block-end: var(--gap-xs);
+  border-block-end: 2px solid var(--accent);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  color: var(--text);
+}
+
+.exam2col__section {
+  margin: var(--gap) 0 var(--gap-xs);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.exam2col__col > .exam2col__section:first-of-type { margin-block-start: 0; }
+
+.exam2col__row {
+  display: grid;
+  grid-template-columns: 74px 1fr;
+  gap: var(--gap-xs);
+  align-items: center;
+  padding-block: 3px;
+}
+.exam2col__row-label { font-size: var(--fs-xs); color: var(--muted); }
+
