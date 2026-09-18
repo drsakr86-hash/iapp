@@ -1,1 +1,0 @@
-import{U as e,W as t}from"./index-CbIBfZ4J.js";var n=t(e(),1);function r(e){(0,n.useEffect)(()=>{let t=document.title;return document.title=e?`${e} — I App`:`I App`,()=>{document.title=t}},[e])}export{r as t};

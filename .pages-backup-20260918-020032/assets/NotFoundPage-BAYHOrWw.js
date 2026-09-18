@@ -1,1 +1,0 @@
-import{F as e,x as t}from"./index-Bagr1G-p.js";import{t as n}from"./useDocumentTitle-D0aBxLhn.js";var r=t();function i(){return n(`صفحة غير موجودة`),(0,r.jsxs)(`div`,{className:`centered`,children:[(0,r.jsx)(`h1`,{style:{fontSize:`var(--fs-lg)`,margin:0},children:`الصفحة غير موجودة`}),(0,r.jsx)(e,{to:`/`,className:`btn`,children:`العودة للرئيسية`})]})}export{i as default};
