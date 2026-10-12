@@ -1,0 +1,1 @@
+import{C as e,L as t}from"./index-yq-kq27v.js";import{t as n}from"./useDocumentTitle-CMTM4qDR.js";var r=e();function i(){return n(`صفحة غير موجودة`),(0,r.jsxs)(`div`,{className:`centered`,children:[(0,r.jsx)(`h1`,{style:{fontSize:`var(--fs-lg)`,margin:0},children:`الصفحة غير موجودة`}),(0,r.jsx)(t,{to:`/`,className:`btn`,children:`العودة للرئيسية`})]})}export{i as default};
