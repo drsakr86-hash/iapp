@@ -1,0 +1,1 @@
+import{i as e,n as t}from"./jsx-runtime-Cltr0gcK.js";import{y as n}from"./index-D5Si11ui.js";var r=e(t(),1),i={confirm:async({message:e})=>window.confirm(e),promptText:async({message:e,minLength:t=1})=>{let n=window.prompt(e);return n&&n.trim().length>=t?n.trim():null}};function a(){return(0,r.useContext)(n)??i}export{a as t};
