@@ -4,12 +4,27 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/iapp/app/favicon.svg" />
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <link rel="manifest" href="/iapp/app/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/iapp/app/icons/apple-touch-icon.png" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="I App" />
     <meta name="theme-color" content="#0A0F1E" />
     <meta name="robots" content="noindex" />
+    <script>
+      /* Apply the saved theme before first paint (no dark→light flash). */
+      try {
+        if (localStorage.getItem('iapp:theme') === 'light') {
+          document.documentElement.setAttribute('data-theme', 'light');
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#F4F7FB');
+        }
+      } catch (e) {}
+    </script>
     <title>I App</title>
-    <script type="module" crossorigin src="/iapp/app/assets/index-DT9VDkJw.js"></script>
-    <link rel="stylesheet" crossorigin href="/iapp/app/assets/index-BlQTYYHj.css">
+    <script type="module" crossorigin src="/iapp/app/assets/index-2UwFQp9w.js"></script>
+    <link rel="modulepreload" crossorigin href="/iapp/app/assets/jsx-runtime-Cltr0gcK.js">
+    <link rel="stylesheet" crossorigin href="/iapp/app/assets/index-B4PuQlVS.css">
   </head>
   <body>
     <div id="root"></div>

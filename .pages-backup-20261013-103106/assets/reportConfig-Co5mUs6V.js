@@ -1,0 +1,1 @@
+var e={appName:`I App — عيادات طب وجراحة العيون`,doctorNameAr:`د. عبدالستار صقر`,doctorTitleAr:`استشاري طب وجراحة العيون والليزر`};export{e as t};
