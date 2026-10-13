@@ -1,0 +1,1 @@
+import{H as e,O as t}from"./index-DGkrRPe8.js";async function n(n,r,i){let{data:a,error:o}=await e.rpc.bind(e)(n,r);if(o)throw Error(t(o,i??n));return a}function r(t){return e.from(t)}export{r as n,n as t};
